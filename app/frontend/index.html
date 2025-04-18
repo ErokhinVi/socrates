@@ -1,9 +1,7 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Raiffeisen Bank Chat</title>
   <link rel="stylesheet" href="/static/style.css" />
@@ -11,41 +9,156 @@
 <body>
   <div class="container">
     <aside class="sidebar">
-      <div class="chat-list-wrapper">
-        <!-- Логотип и текст на одной строке -->
-        <div class="logo-header">
-          <img src="/static/images/raif_logo.png" alt="Raiffeisen Logo" class="header-icon" />
-          <!-- <span class="logo-text">Райффайзен Банк</span> -->
-        </div>
-        <ul class="chat-list">
-          <li class="chat-item">Есть ли вообще шансы нанять Chief Data Scientist в 2025?</li>
-          <li class="chat-item">Что спросить у middle data engineer?</li>
-          <li class="chat-item">Можно ли LLM-инженеру заплатить 100 рублей?</li>
-        </ul>
+      <div class="logo-header">
+        <img src="/static/images/raif_logo.png" alt="Raiffeisen Logo" class="header-icon" />
       </div>
-      <button class="btn create-chat">Новый чат</button>
+      <div class="sidebar-buttons">
+        <button id="btnInterview" class="btn sidebar-btn">Провести<br/>интервью</button>
+        <button id="btnEvaluate" class="btn sidebar-btn">Оценить<br/>интервью</button>
+        <button id="btnProfession" class="btn sidebar-btn">Узнать о<br/>профессии</button>
+      </div>
     </aside>
-    <main class="main-content">
-      <div class="center-buttons">
-        <a href="/interview" class="btn interview-btn">Провести<br/>интервью</a>
-        <a href="/evaluation" class="btn evaluate-btn">Оценить<br/>интервью</a>
-      </div>
-      <div class="chat-area">
-        <div class="messages"></div>
-        <div class="input-area">
-          <input type="text" id="chat-input" placeholder="Введите сообщение" />
-          <button id="send-btn" class="send-btn">
-            <img src="/static/icons/send.svg" class="icon-send" />
-          </button>
+
+    <div class="main-content">
+      <!-- Домашний экран -->
+      <section id="view-home" class="view">
+        <div class="welcome-screen">
+          <h1>Добро пожаловать в Raiffeisen Bank Chat</h1>
+          <p>Выберите действие слева, чтобы начать.</p>
         </div>
-      </div>
-    </main>
+      </section>
+
+      <!-- Форма интервью -->
+      <section id="view-interview-form" class="view" style="display:none">
+        <div class="bg-white shadow mt-6 p-6 rounded w-full max-w-4xl">
+          <h1 class="text-xl font-bold mb-4">Опишите профиль кандидата</h1>
+          <form id="personaForm" class="space-y-4">
+            <label class="block">
+              Профиль:
+              <input type="text" id="inputPersona" class="mt-1 p-2 border rounded w-full" placeholder="Data Scientist" required />
+            </label>
+            <label class="block">
+              Навык:
+              <input type="text" id="inputSkill" class="mt-1 p-2 border rounded w-full" placeholder="ML найм" required />
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Перейти к интервью</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Чат-интервью -->
+      <section id="view-interview-chat" class="view" style="display:none">
+        <div class="bg-white shadow mt-6 p-6 rounded w-full max-w-4xl flex flex-col">
+          <div class="bg-gray-50 mb-4 p-4 rounded">
+            <div class="flex justify-between">
+              <div>
+                <p class="font-medium text-gray-700">Профиль кандидата:</p>
+                <p id="personaDisplay" class="mt-1 text-sm"></p>
+              </div>
+              <div>
+                <p class="font-medium text-gray-700">Навык:</p>
+                <p id="skillDisplay" class="mt-1 text-sm"></p>
+              </div>
+            </div>
+          </div>
+          <div id="connection-status" class="bg-yellow-100 p-2 rounded text-yellow-700 text-center mb-2">Подключение...</div>
+          <div id="messages" class="flex-1 mb-4 p-4 border h-80 overflow-y-auto"></div>
+          <form id="chat-form" class="flex space-x-2 mb-4" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" placeholder="Введите сообщение" class="flex-grow p-2 border rounded" disabled />
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white" disabled>Отправить</button>
+          </form>
+          <div class="flex justify-between space-x-2">
+            <button id="endInterviewBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white">Завершить интервью</button>
+            <span id="recordingStatus" class="text-gray-600"></span>
+            <button id="recordButton" class="bg-blue-600 hover:bg-red-600 px-4 py-2 rounded text-white" disabled>Записать голос</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Заглушки для других экранов -->
+      <section id="view-evaluation" class="view" style="display:none">
+        <h1>Оценка интервью (заглушка)</h1>
+      </section>
+      <section id="view-newprofession" class="view" style="display:none">
+        <h1>Узнать о профессии (заглушка)</h1>
+      </section>
+    </div>
   </div>
+
   <script>
-    document.getElementById("send-btn").addEventListener("click", function () {
-      const val = document.getElementById("chat-input").value;
-      alert(val);
-    });
+    // Переключение экранов
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+      document.getElementById(id).style.display = '';
+    }
+    document.getElementById('btnInterview').onclick = () => showView('view-interview-form');
+    document.getElementById('btnEvaluate').onclick = () => showView('view-evaluation');
+    document.getElementById('btnProfession').onclick = () => showView('view-newprofession');
+    // Обработка формы профиля
+    document.getElementById('personaForm').onsubmit = e => {
+      e.preventDefault();
+      const p = document.getElementById('inputPersona').value.trim();
+      const s = document.getElementById('inputSkill').value.trim();
+      document.getElementById('personaDisplay').textContent = p;
+      document.getElementById('skillDisplay').textContent = s;
+      showView('view-interview-chat');
+      initInterview(p, s);
+    };
+    // Изначально показываем домашний экран
+    showView('view-home');
+  </script>
+
+  <!-- Логика интервью (WebSocket, функции) -->
+  <script>
+    let ws, isConnected = false, isWaitingForResponse = false, mediaRecorder, audioChunks = [];
+    let conversationHistory = [];
+    function initInterview(persona, skill) {
+      connectWebSocket(persona, skill);
+    }
+    function connectWebSocket(persona, skill) {
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+      const wsUrl = `${protocol}://${location.host}/ws/interview?persona=${encodeURIComponent(persona)}&skill=${encodeURIComponent(skill)}`;
+      ws = new WebSocket(wsUrl);
+      updateConnectionStatus('Подключение...', 'yellow');
+      ws.onopen = () => { isConnected=true; updateConnectionStatus('Подключено','green'); enableInterface(); };
+      ws.onclose = e => { isConnected=false; disableInterface(); updateConnectionStatus('Соединение закрыто','yellow'); };
+      ws.onerror = () => updateConnectionStatus('Ошибка соединения','red');
+      ws.onmessage = event => handleWebSocketMessage(event);
+    }
+    function handleWebSocketMessage(event) {
+      const resp = JSON.parse(event.data);
+      if (resp.type==='error') return updateConnectionStatus(resp.text,'red');
+      if (['text','voice'].includes(resp.type)) {
+        addAssistantMessage(resp.content);
+        if (resp.type==='voice' && resp.audio) playAudio(resp.audio);
+        updateChatDisplay(); hideStatusMessage(); isWaitingForResponse=false; enableInterface();
+      }
+    }
+    function sendMessage(e) {
+      e.preventDefault(); if(!isConnected||isWaitingForResponse) return;
+      const input = document.getElementById('messageText'); const msg = input.value.trim(); if(!msg) return;
+      addUserMessage(msg); updateChatDisplay(); ws.send(JSON.stringify({type:'text',message:msg}));
+      input.value=''; isWaitingForResponse=true; disableInterface(true);
+    }
+    function addUserMessage(txt){ conversationHistory.push({role:'user',content:txt}); }
+    function addAssistantMessage(txt){ conversationHistory.push({role:'assistant',content:txt}); }
+    function updateChatDisplay(){
+      const el = document.getElementById('messages'); el.innerHTML='';
+      conversationHistory.forEach(m=>{
+        const d=document.createElement('div');
+        d.textContent = (m.role==='user'?'👤 ':'🤖 ')+m.content;
+        d.style.textAlign = m.role==='user'?'right':'left'; el.appendChild(d);
+      }); el.scrollTop=el.scrollHeight;
+    }
+    function updateConnectionStatus(msg,color){
+      const st=document.getElementById('connection-status'); st.textContent=msg; st.className=`mb-2 p-2 text-center rounded bg-${color}-100 text-${color}-700`;
+    }
+    function hideStatusMessage(){ document.getElementById('connection-status').style.display='none'; }
+    function enableInterface(){ document.getElementById('messageText').disabled=false; document.querySelector('#chat-form button').disabled=false; document.getElementById('recordButton').disabled=false; }
+    function disableInterface(){ document.getElementById('messageText').disabled=true; document.querySelector('#chat-form button').disabled=true; document.getElementById('recordButton').disabled=true; }
+    function playAudio(base64){ const a=new Audio('data:audio/mp3;base64,'+base64); a.play(); }
+    document.getElementById('endInterviewBtn').onclick = ()=>{ ws.close(); showView('view-home'); };
+    document.getElementById('recordButton').onclick = ()=>{/* recording logic here if needed */};
   </script>
 </body>
 </html>

@@ -8,6 +8,12 @@ from app.api.interview import router as interview_router
 
 app = FastAPI()
 
+app.mount(
+    "/static",
+    StaticFiles(directory="app/frontend/static"),
+    name="static"
+)
+
 #подключаем стиль
 
 app.mount("/static", StaticFiles(directory="app/frontend/static"), name="static")
