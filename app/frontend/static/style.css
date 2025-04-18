@@ -8,6 +8,7 @@ html, body {
   font-family: sans-serif;
 }
 * { box-sizing: border-box; }
+.hidden { display: none !important; }
 
 .container { display: flex; height: 100vh; }
 
@@ -19,8 +20,6 @@ html, body {
   display: flex;
   flex-direction: column;
 }
-
-/* Логотип */
 .logo-header {
   display: flex;
   justify-content: center;
@@ -29,18 +28,14 @@ html, body {
 .header-icon {
   width: 232px;
   height: auto;
-  /* оставляем скругление, если нужно */
   border-radius: 6px;
   object-fit: contain;
 }
-
-
-/* Жёлтые кнопки в сайдбаре */
 .sidebar-buttons {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 105px; /* теперь кнопки центрируются по вертикали */
+  margin-top: 105px;
 }
 .sidebar-btn {
   width: 100%;
@@ -55,8 +50,6 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  text-align: center;
-  text-decoration: none;
 }
 .sidebar-btn:hover {
   background-color: #ffe34d;
@@ -69,47 +62,100 @@ html, body {
   justify-content: center;
   align-items: center;
 }
-
-/* Chat area */
-.chat-area {
+.view {
+  padding: 24px;
   width: 100%;
-  /* увеличили максимальную ширину для расширенного вида */
-  max-width: 1130px;
+}
+
+/* Форма профиля */
+#view-interview-form .bg-white {
+  border: 1px solid #2B2D33;
+  background-color: #292B32;
+  color: #fff;
+  max-width: 800px;
+  margin: auto;
+}
+#view-interview-form input {
   background-color: #1F2026;
-  border-radius: 15px;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+}
+
+/* Чат */
+.chat-area {
+  border: 1px solid #2B2D33;
+  border-radius: 12px;
+  background-color: #292B32;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  /* подогнать под высоту */
-  height: calc(100vh - 20px);
+  max-width: 800px;
+  width: 100%;
+}
+.messages {
+  flex: 1;
+  min-height: 400px;
+  background-color: #1D1E23;
+  border: 1px solid #2B2D33;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  width: 100%;
+}
+.message-user {
+  background-color: #3A3C42;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: right;
+  margin-bottom: 8px;
+}
+.message-assistant {
+  background-color: #2B2D33;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: left;
+  margin-bottom: 8px;
 }
 
-.messages { flex: 1; overflow-y: auto; }
-
+/* Область ввода */
 .input-area {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
-#chat-input {
-  flex: 1;
+.input-area input {
+  flex-grow: 1;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: none;
-  background-color: #2B2C34;
-  color: #FFFFFF;
+  background-color: #1F2026;
+  color: #fff;
   font-size: 1rem;
 }
-.send-btn {
-  width: 56px;
-  border: none;
-  border-radius: 6px;
-  background-color: #2B2C34;
-  cursor: pointer;
+.input-area button {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 0;
-  font-size: 0;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background-color: #FFCD3C;
+  color: #000;
 }
-.icon-send { width: 24px; height: 24px; object-fit: contain; }
+#send-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Кнопки управления */
+#endInterviewBtn {
+  margin-top: 12px;
+}
+#recordButton {
+  margin-top: 8px;
+}
