@@ -9,27 +9,27 @@ from pydantic import BaseModel, Field
 class HREvaluation(BaseModel):
     Situation: str = Field(
         ...,
-        description="**Situation**: оценка, критика и рекомендации: насколько HR задавал вопросы, помогающие кандидату описать контекст ситуации.",
+        description="Опиши **Situation** ПО ВСЕМУ ДИАЛОГУ в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации КАК НАДО БЫЛО БЫ СПРОСИТЬ. Обязательно уточни был ли раскрыт компонент: ✅ | ❌",
     )
     Task: str = Field(
         ...,
-        description="**Task**: оценка, критика и рекомендации: насколько HR уточнял конкретную задачу, стоявшую перед кандидатом.",
+        description="Опиши **Task** ПО ВСЕМУ ДИАЛОГУ в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации КАК НАДО БЫЛО БЫ СПРОСИТЬ. Обязательно уточни был ли раскрыт компонент: ✅ | ❌",
     )
     Action: str = Field(
         ...,
-        description="**Action**: оценка, критика и рекомендации: насколько HR побудил кандидата подробно описать свои действия.",
+        description="Опиши **Action** ПО ВСЕМУ ДИАЛОГУ в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации КАК НАДО БЫЛО БЫ СПРОСИТЬ. Обязательно уточни был ли раскрыт компонент: ✅ | ❌",
     )
     Result: str = Field(
         ...,
-        description="**Result**: оценка, критика и рекомендации: насколько HR выяснил результаты, выводы и степень влияния действий кандидата.",
+        description="Опиши **Result** ПО ВСЕМУ ДИАЛОГУ в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации КАК НАДО БЫЛО БЫ СПРОСИТЬ. Обязательно уточни был ли раскрыт компонент: ✅ | ❌",
     )
 
 
 def create_evaluation_agent(system_prompt: str) -> Agent:
     return Agent(
-        name="Evaluation Agent",
-        handoff_description="Оценка сообщений с использованием метода STAR.",
+        name="HR STAR Evaluation",
+        handoff_description="AI‑оценщик HR по методике STAR в Райффайзен Банке.",
         instructions=system_prompt,
-        tools=[extract_situation, extract_action, extract_task, extract_result],
+        # tools=[extract_situation, extract_action, extract_task, extract_result],
         output_type=HREvaluation,
     )
