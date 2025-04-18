@@ -74,7 +74,7 @@ html, body {
     cursor: pointer;
     font-size: 1rem;
     font-weight: 500;
-    text-transform: uppercase;
+    /* text-transform: uppercase; */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -176,4 +176,13 @@ html, body {
     padding: 8px;
     font-size: 0;
   }
+
+  .header-icon {
+    width: 232px;
+    height: auto;
+    /* оставляем скругление, если нужно */
+    border-radius: 6px;
+    object-fit: contain;
+  }
+  
   

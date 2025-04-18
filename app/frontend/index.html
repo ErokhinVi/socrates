@@ -11,19 +11,19 @@
 <body>
   <div class="container">
     <aside class="sidebar">
-      <!-- placeholder для будущей картинки -->
-     <div class="image-placeholder">
-        <img src="/static/images/header.png" alt="Header Image" />
-      </div> 
       <div class="chat-list-wrapper">
-        <div class="logo">Райффайзен Банк</div>
+        <!-- Логотип и текст на одной строке -->
+        <div class="logo-header">
+          <img src="/static/images/raif_logo.png" alt="Raiffeisen Logo" class="header-icon" />
+          <!-- <span class="logo-text">Райффайзен Банк</span> -->
+        </div>
         <ul class="chat-list">
           <li class="chat-item">Есть ли вообще шансы нанять Chief Data Scientist в 2025?</li>
           <li class="chat-item">Что спросить у middle data engineer?</li>
           <li class="chat-item">Можно ли LLM-инженеру заплатить 100 рублей?</li>
         </ul>
       </div>
-      <button class="btn create-chat">Создать диалог</button>
+      <button class="btn create-chat">Новый чат</button>
     </aside>
     <main class="main-content">
       <div class="center-buttons">
@@ -36,7 +36,7 @@
           <input type="text" id="chat-input" placeholder="Введите сообщение" />
           <button id="send-btn" class="send-btn">
             <img src="/static/icons/send.svg" class="icon-send" />
-          </button>          
+          </button>
         </div>
       </div>
     </main>
@@ -49,4 +49,3 @@
   </script>
 </body>
 </html>
- 

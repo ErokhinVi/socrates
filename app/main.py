@@ -10,7 +10,7 @@ app = FastAPI()
 
 #подключаем стиль
 
-app.mount("/static", StaticFiles(directory="app/frontend"), name="static")
+app.mount("/static", StaticFiles(directory="app/frontend/static"), name="static")
 
 # Инициализируем роутеры для API
 app.include_router(evaluation_router)
