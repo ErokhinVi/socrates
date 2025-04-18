@@ -164,7 +164,16 @@ html, body {
     border-radius: 6px;
     cursor: pointer;
   }
-  .send-btn img {
-    width: 100%;
-    height: 100%;
+ /* размер иконки в кнопке */
+.icon-send {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
   }
+  .send-btn {
+    /* убираем любой padding/text-indent, если они мешают */
+    padding: 8px;
+    font-size: 0;
+  }
+  
