@@ -1,0 +1,13 @@
+[project]
+name = "socrates"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.12",
+    "openai>=1.75.0",
+    "openai-agents>=0.0.11",
+    "python-dotenv>=1.1.0",
+    "uvicorn>=0.34.1",
+]
