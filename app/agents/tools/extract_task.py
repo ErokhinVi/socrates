@@ -22,7 +22,7 @@ extract_task_json = {
                 "required": ["Task"],
                 "additionalProperties": False
             },
-            "strict": True,
+            "strict": True, 
         }
 
 
