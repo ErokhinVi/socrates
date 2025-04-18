@@ -50,7 +50,7 @@ async def websocket_interview(
         persona=persona, skill=skill
     )
     interviewee_agent = create_interviewee_agent(system_prompt)
-    star_agent        = create_evaluation_agent(evaluation_prompts["evaluation_system_prompt"])
+    star_agent = create_evaluation_agent(evaluation_prompts["evaluation_system_prompt"])
 
     messages: List[Dict[str, Union[str, Dict[str, str]]]] = []
 
@@ -70,20 +70,26 @@ async def websocket_interview(
             data: Dict[str, Any] = json.loads(raw)
 
             # ---------- завершение интервью ----------
+            print(messages)
             if data.get("type") == "end":
                 history_str: str = ttt.create_history_template(messages)
+                print("---" * 300)
+                print(history_str)
                 star_result: Dict[str, str] = await run_star_evaluation(
                     star_agent, history_str
                 )
                 await ws.send_json(
-                    {"type": "star_summary", "star": star_result.model_dump()}  # <-- важно: отправляем dict
+                    {
+                        "type": "star_summary",
+                        "star": star_result.model_dump(),
+                    }  # <-- важно: отправляем dict
                 )
                 break  # выходим из цикла — соединение будет закрыто сервером
 
             # ---------- текстовое сообщение ----------
             if data.get("type") == "text":
                 user_input: str = data.get("message", "")
-                is_audio: bool  = False
+                is_audio: bool = False
 
             # ---------- аудио сообщение ----------
             elif data.get("type") == "audio":
@@ -94,9 +100,7 @@ async def websocket_interview(
                 user_input = stt.transcribe_from_path(tmp_path)
                 is_audio = True
             else:
-                await ws.send_json(
-                    {"type": "error", "text": "unknown message type"}
-                )
+                await ws.send_json({"type": "error", "text": "unknown message type"})
                 continue
 
             # ---------- сохраняем реплику пользователя ----------
