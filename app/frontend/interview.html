@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Интервью</title>
+
+    <!-- Tailwind + Typography -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
+    <!-- Markdown parser + sanitizer -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.6/dist/purify.min.js"></script>
+</head>
+<body class="h-screen w-screen bg-[#2B2D33] font-sans">
+    <div class="flex flex-col h-full w-full p-6 bg-white overflow-hidden">
+
+        <!-- текущая сессия -->
+        <div class="p-2 mb-4 bg-gray-50 rounded">
+            <h2 class="mb-2 text-lg font-semibold">Текущая сессия интервью</h2>
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-700">Профиль кандидата:</p>
+                    <p id="personaDisplay" class="mt-1 text-sm break-words"></p>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-700">Дополнительная информация:</p>
+                    <p id="skillDisplay" class="mt-1 text-sm break-words"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- статус -->
+        <div id="connection-status" class="p-2 mb-2 text-center text-yellow-700 bg-yellow-100 rounded">
+            Подключение...
+        </div>
+
+        <!-- сообщения -->
+        <div id="messages" class="flex-grow w-full max-w-none p-4 overflow-y-auto break-words border prose prose-sm"></div>
+
+        <!-- индикатор печати -->
+        <div id="waitingIndicator" class="flex items-center justify-center my-2 hidden">
+            <svg class="w-5 h-5 text-blue-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l5-5-5-5v4a10 10 0 00-5 18.9V20a8 8 0 010-16z"></path>
+            </svg>
+            <span class="ml-2 text-sm text-gray-700">Ассистент печатает...</span>
+        </div>
+
+        <!-- форма ввода -->
+        <form id="chat-form" onsubmit="sendMessage(event)" class="flex space-x-2">
+            <textarea
+                id="messageText"
+                placeholder="Введите сообщение (Ctrl+Enter — отправить)"
+                rows="3"
+                class="flex-grow p-2 border rounded resize-y"
+                disabled
+            ></textarea>
+            <button type="submit" class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600" disabled>
+                Отправить
+            </button>
+        </form>
+
+        <!-- кнопки управления до завершения -->
+        <div id="preEndControls" class="flex justify-between mt-4 space-x-2">
+            <button
+                id="endInterviewBtn"
+                onclick="endInterview()"
+                class="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
+            >
+                Завершить интервью
+            </button>
+            <span id="recordingStatus" class="text-gray-600"></span>
+            <button
+                id="recordButton"
+                onclick="toggleRecording()"
+                class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-red-600"
+                disabled
+            >
+                Записать голос
+            </button>
+        </div>
+
+        <!-- кнопки управления после завершения -->
+        <div id="postEndControls" class="flex justify-end mt-4 space-x-2 hidden">
+            <button
+                id="downloadBtn"
+                class="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700"
+            >
+                Скачать отчёт
+            </button>
+            <button
+                id="closeBtn"
+                class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700"
+            >
+                Закрыть сессию
+            </button>
+        </div>
+    </div>
+
+<script>
+/* ---------- параметры из URL ---------- */
+const params = new URLSearchParams(window.location.search);
+const currentPersona = params.get("persona");
+const currentSkill   = params.get("skill");
+if (!currentPersona || !currentSkill) location.href = "/select-persona";
+document.getElementById("personaDisplay").textContent = currentPersona;
+document.getElementById("skillDisplay").textContent   = currentSkill;
+
+/* ---------- глобальные переменные ---------- */
+let ws, mediaRecorder, isRecording = false, isWaiting = false, interviewEnded = false;
+let conversationHistory = {
+    timestamp: new Date().toISOString(),
+    persona: currentPersona,
+    skill:   currentSkill,
+    messages: []
+};
+let starSummary = null;
+
+/* ---------- helpers ---------- */
+const sanitize = html => DOMPurify.sanitize(marked.parse(html || ""));
+
+function updateConnectionStatus(msg, color){
+    const el = document.getElementById("connection-status");
+    if (!msg){
+        el.classList.add("hidden");
+        return;
+    }
+    el.textContent = msg;
+    el.className   = "p-2 mb-2 text-center rounded";
+    el.classList.remove("hidden");
+    const map = {
+        green:["bg-green-100","text-green-700"],
+        yellow:["bg-yellow-100","text-yellow-700"],
+        red:["bg-red-100","text-red-700"]
+    };
+    if (map[color]) el.classList.add(...map[color]);
+    if (color==="green") setTimeout(()=>el.classList.add("hidden"),2000);
+}
+
+function enableUI(disabled){
+    ["messageText","#chat-form button","recordButton","endInterviewBtn"].forEach(sel=>{
+        const el = sel.startsWith("#")?document.querySelector(sel):document.getElementById(sel);
+        if (el) el.disabled = disabled;
+    });
+    if (!disabled) document.getElementById("messageText").focus();
+}
+
+function showWait(show){
+    document.getElementById("waitingIndicator").classList.toggle("hidden", !show);
+}
+
+/* ---------- websocket ---------- */
+function connect(){
+    const proto = location.protocol==="https:"?"wss":"ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws/interview?persona=${encodeURIComponent(currentPersona)}&skill=${encodeURIComponent(currentSkill)}`);
+    updateConnectionStatus("Подключение...","yellow");
+
+    ws.onopen   = ()=>{ updateConnectionStatus("Подключено","green"); enableUI(false); };
+    ws.onclose  = ()=>{ if (!interviewEnded) updateConnectionStatus("Соединение закрыто","yellow"); enableUI(true); };
+    ws.onerror  = ()=>{ updateConnectionStatus("Ошибка соединения","red"); enableUI(true); };
+    ws.onmessage= onWSMessage;
+}
+
+function onWSMessage(evt){
+    let data;
+    try{ data = JSON.parse(evt.data); }catch{ return; }
+
+    switch(data.type){
+        case "text":
+        case "voice":
+            processAssistantMessage(data);
+            break;
+        case "star_summary":
+            handleStarSummary(data.star);
+            break;
+        case "error":
+            updateConnectionStatus(`Ошибка: ${data.text}`, "red");
+            break;
+    }
+    showWait(false);
+    isWaiting = false;
+    if (!interviewEnded) enableUI(false);
+}
+
+function processAssistantMessage(data){
+    if (data.type==="voice" && data.user_text) addMessage("user", data.user_text);
+    addMessage("assistant", data.content);
+    updateMessagesView();
+    if (data.type==="voice" && data.audio) new Audio("data:audio/mp3;base64,"+data.audio).play();
+}
+
+/* ---------- сообщения ---------- */
+function addMessage(role, content){
+    conversationHistory.messages.push({role,content});
+}
+
+function updateMessagesView(){
+    const wrap = document.getElementById("messages");
+    wrap.innerHTML="";
+    conversationHistory.messages.forEach(m=>{
+        const block=document.createElement("div");
+        block.className="mb-4 "+(m.role==="user"?"text-right":"text-left");
+        block.innerHTML=`<p class="font-semibold mb-1">［${m.role==="user"?"👤":"🤖"}］:</p><div>${sanitize(m.content)}</div>`;
+        wrap.appendChild(block);
+    });
+    if (starSummary) renderStarSummary();  // если оценка уже получена
+    wrap.scrollTop = wrap.scrollHeight;
+}
+
+/* ---------- отправка текста ---------- */
+function sendMessage(e){
+    e.preventDefault();
+    if (isWaiting || interviewEnded) return;
+    const txt = document.getElementById("messageText");
+    const val = txt.value.trim();
+    if (!val) return;
+    addMessage("user", val);
+    updateMessagesView();
+    ws.send(JSON.stringify({type:"text", message:val}));
+    txt.value="";
+    isWaiting = true;
+    enableUI(true);
+    showWait(true);
+}
+
+/* ---------- аудио ---------- */
+async function toggleRecording(){
+    if (isWaiting || interviewEnded) return;
+    if (!isRecording) startRec(); else stopRec();
+}
+
+async function startRec(){
+    try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder = new MediaRecorder(stream);
+        const chunks=[];
+        mediaRecorder.ondataavailable = e=>chunks.push(e.data);
+        mediaRecorder.onstop = ()=>{
+            const blob = new Blob(chunks,{type:"audio/webm"});
+            const reader=new FileReader();
+            reader.onloadend=()=>ws.send(JSON.stringify({type:"audio", audio:reader.result.split(",")[1]}));
+            reader.readAsDataURL(blob);
+            updateConnectionStatus("Аудио отправлено, ожидание ответа...","yellow");
+            isWaiting = true;
+            enableUI(true);
+            showWait(true);
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById("recordButton").textContent = "Остановить";
+    }catch(err){
+        updateConnectionStatus("Ошибка доступа к микрофону","red");
+    }
+}
+
+function stopRec(){
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+    isRecording = false;
+    document.getElementById("recordButton").textContent = "Записать голос";
+}
+
+/* ---------- завершение интервью ---------- */
+function endInterview(){
+    if (!conversationHistory.messages.length){
+        alert("Сначала проведите интервью");
+        return;
+    }
+    if (!confirm("Завершить интервью и получить итоговую оценку?")) return;
+    enableUI(true);
+    updateConnectionStatus("Запрашиваем итоговую оценку…","yellow");
+    ws.send(JSON.stringify({type:"end"}));
+    showWait(true);
+}
+
+function handleStarSummary(star){
+    interviewEnded = true;
+    starSummary = star;
+    renderStarSummary();
+    disablePreEndUI();
+    showPostEndUI();
+    updateConnectionStatus("Интервью завершено","green");
+}
+
+function renderStarSummary(){
+    if (!starSummary) return;
+    const wrap=document.getElementById("messages");
+    const box=document.createElement("div");
+    box.className="p-3 mb-4 text-sm text-gray-800 bg-indigo-50 rounded";
+    box.innerHTML="<p class='mb-2 font-semibold'>STAR‑оценка (Situation / Task / Action / Result):</p>"+
+        ["Situation","Task","Action","Result"].map(k=>
+            starSummary[k]!==undefined?`<p><strong>${k}:</strong> ${sanitize(starSummary[k])}</p>`:""
+        ).join("");
+    wrap.appendChild(box);
+    wrap.scrollTop = wrap.scrollHeight;
+}
+
+/* ---------- UI после завершения ---------- */
+function disablePreEndUI(){
+    document.getElementById("preEndControls").classList.add("hidden");
+    enableUI(true);
+    document.getElementById("messageText").disabled = true;
+}
+
+function showPostEndUI(){
+    const post = document.getElementById("postEndControls");
+    post.classList.remove("hidden");
+    document.getElementById("downloadBtn").addEventListener("click", downloadInterviewJson);
+    document.getElementById("closeBtn").addEventListener("click", closeSession);
+}
+
+function downloadInterviewJson(){
+    conversationHistory.star = starSummary;
+    const blob = new Blob([JSON.stringify(conversationHistory,null,2)], {type:"application/json"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `interview_${currentPersona.replace(/[^a-zA-Zа-яА-Я0-9]/g,"_").slice(0,20)}_${new Date().toISOString().replace(/[:.]/g,"-")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
+
+function closeSession(){
+    if (ws.readyState === WebSocket.OPEN) ws.close(1000,"Interview completed");
+    location.href = "/";
+}
+
+/* ---------- доп клавиши ---------- */
+document.getElementById("messageText").addEventListener("keydown", e=>{
+    if (e.key==="Enter" && (e.ctrlKey||e.metaKey)){
+        e.preventDefault();
+        document.getElementById("chat-form").requestSubmit();
+    }
+});
+
+/* ---------- старт ---------- */
+connect();
+</script>
+</body>
+</html>
+
