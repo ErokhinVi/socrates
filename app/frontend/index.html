@@ -47,8 +47,8 @@
             </label>
 
             <label>
-              <span class="label-text">Навык для оценки:</span>
-              <input type="text" id="inputSkill" placeholder="Python" required />
+              <span class="label-text">Выдели основные компетенции кандидата:</span>
+              <input type="text" id="inputSkill" placeholder="Например - проактивность, тайм менеджмент, ответственность..." required />
             </label>
 
             <button type="submit" class="primary-btn w-full">Перейти к интервью</button>
@@ -60,10 +60,20 @@
       <section id="view-interview-chat" class="view" style="display:none;">
         <div class="chat-area">
             <div class="chat-info">
-              <h2 class="chat-heading">Текущая сессия интервью</h2>
-            <p>Профиль кандидата: <span id="personaDisplay"></span></p>
-            <p>Оцениваемый навык: <span id="skillDisplay"></span></p>
-          </div>
+                <h2 class="chat-heading">Текущая сессия интервью</h2>
+              
+                <!-- flex‑контейнер для мета‑информации -->
+                <div class="chat-meta">
+                  <div class="meta-item">
+                    <strong>Профиль кандидата:</strong>
+                    <span id="personaDisplay"></span>
+                  </div>
+                  <div class="meta-item">
+                    <strong>Компетенции:</strong>
+                    <span id="skillDisplay"></span>
+                  </div>
+                </div>
+              </div>
 
           <div id="connection-status" class="status-toast hidden"></div>
 
