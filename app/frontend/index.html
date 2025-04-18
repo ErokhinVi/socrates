@@ -6,28 +6,32 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Raiffeisen Bank Chat</title>
-  <!-- Подключаем статический CSS -->
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <div class="container">
     <aside class="sidebar">
-      <div class="logo">Райффайзен Банк</div>
-      <button class="btn create-chat">Создать чат</button>
-      <ul class="chat-list">
-        <li class="chat-item">Чат: Тема 1</li>
-        <li class="chat-item">Чат: Тема 2</li>
-        <li class="chat-item">Чат: Тема 3</li>
-      </ul>
+      <!-- placeholder для будущей картинки -->
+      <div class="image-placeholder">
+        <!-- поместите сюда файл header.png в папку app/frontend/static/images -->
+        <img src="/static/images/header.png" alt="Header Image" />
+      </div>
+      <div class="chat-list-wrapper">
+        <div class="logo">Райффайзен Банк</div>
+        <ul class="chat-list">
+          <li class="chat-item">Есть ли вообще шансы нанять Chief Data Scientist в 2025?</li>
+          <li class="chat-item">Что спросить у middle data engineer?</li>
+          <li class="chat-item">Можно ли LLM-инженеру заплатить 100 рублей?</li>
+        </ul>
+      </div>
+      <button class="btn create-chat">+ Создать диалог</button>
     </aside>
     <main class="main-content">
       <div class="center-buttons">
-        <!-- Ссылки вместо кнопок для перехода -->
         <a href="/interview" class="btn interview-btn">Провести<br/>интервью</a>
         <a href="/evaluation" class="btn evaluate-btn">Оценить<br/>интервью</a>
       </div>
       <div class="chat-area">
-        <div class="audio-bar">AudioBar</div>
         <div class="messages"></div>
         <div class="input-area">
           <input type="text" id="chat-input" placeholder="Введите сообщение" />
@@ -44,3 +48,4 @@
   </script>
 </body>
 </html>
+ 
