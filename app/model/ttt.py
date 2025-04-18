@@ -13,16 +13,15 @@ class TTT:
         Generate text response
         """
         try:
-            response = self.client.responses.create(
-                model=self.model,
-                input=messages
-            )
+            response = self.client.responses.create(model=self.model, input=messages)
             return response.output_text
 
         except Exception as e:
             return f"Error generating response: {str(e)}"
 
-    def generate_response_with_function(self, messages: List[Dict[str, str]], functions: List[Dict] = None) -> Union[str, Dict]:
+    def generate_response_with_function(
+        self, messages: List[Dict[str, str]], functions: List[Dict] = None
+    ) -> Union[str, Dict]:
         """
         Generate text response with function call
         """
@@ -31,14 +30,14 @@ class TTT:
                 "model": self.model,
                 "input": messages,
                 "tools": functions,
-                "tool_choice": "required"
+                "tool_choice": "required",
             }
             response = self.client.responses.create(**params)
             tool_call = response.output[0]
             print("Tool call:", tool_call)
             args = json.loads(tool_call.arguments)
             return args
-            
+
         except Exception as e:
             return f"Error generating response: {str(e)}"
 
@@ -46,7 +45,14 @@ class TTT:
         """
         Create chat message with role and content
         """
-        return {
-            "role": role,
-            "content": content
-        }
+        return {"role": role, "content": content}
+
+    def create_history_template(self, messages: List[Dict[str, str]]) -> str:
+        """Create chat history"""
+        if not messages:
+            return ""
+        history = """Контекст по предыдущим сообщениям внутри диалога:"""
+
+        for message in messages:
+            history += f"**{message.get('role', "")}**: {message.get('content', "")}"
+        return history

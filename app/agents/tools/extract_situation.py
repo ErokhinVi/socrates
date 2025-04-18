@@ -13,7 +13,7 @@ class Message(BaseModel):
 extract_situation_json = {
             "type": "function",
             "name": "extract_situation",
-            "description": "Извлечь элемент Situation (Ситуация) из стенограммы собеседования. Не выдумывайте ничего, используйте только предоставленную стенограмму собеседования.",
+            "description": "Оценка и комментарий по компоненту Situation: указывает, создаёт ли рекрутер контекст ситуации",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -28,7 +28,7 @@ extract_situation_json = {
 @function_tool
 def extract_situation(messages: List[Message]) -> str:
     """
-    Извлечь элемент Situation (Ситуация) из стенограммы собеседования. Не выдумывайте ничего, используйте только предоставленную стенограмму собеседования.
+    Оценка и комментарий по компоненту Situation: указывает, создаёт ли рекрутер контекст ситуации
 
     Args:
         messages (list): Список сообщений из стенограммы собеседования. Каждое сообщение - словарь, содержащий 'role' и 'content'.

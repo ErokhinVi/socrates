@@ -13,7 +13,7 @@ class Message(BaseModel):
 extract_task_json = {
             "type": "function",
             "name": "extract_task",
-            "description": "Извлечь элемент Task (Задача) из стенограммы собеседования. Не выдумывайте ничего, используйте только предоставленную стенограмму собеседования.",
+            "description": "Оценка и комментарий по компоненту Task: уточняет ли рекрутер конкретную задачу кандидата",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -22,14 +22,14 @@ extract_task_json = {
                 "required": ["Task"],
                 "additionalProperties": False
             },
-            "strict": True,
+            "strict": True, 
         }
 
 
 @function_tool
 def extract_task(messages: List[Message]) -> str:
     """
-    Извлечь элемент Task (Задача) из стенограммы собеседования. Не выдумывайте ничего, используйте только предоставленную стенограмму собеседования.
+    Оценка и комментарий по компоненту Task: уточняет ли рекрутер конкретную задачу кандидата
 
     Args:
         messages (list): Список сообщений из стенограммы собеседования. Каждое сообщение - словарь, содержащий 'role' и 'content'.
