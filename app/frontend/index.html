@@ -12,10 +12,10 @@
   <div class="container">
     <aside class="sidebar">
       <!-- placeholder для будущей картинки -->
-      <div class="image-placeholder">
+      <!-- <div class="image-placeholder">
         <!-- поместите сюда файл header.png в папку app/frontend/static/images -->
         <img src="/static/images/header.png" alt="Header Image" />
-      </div>
+      </div> -->
       <div class="chat-list-wrapper">
         <div class="logo">Райффайзен Банк</div>
         <ul class="chat-list">
@@ -24,7 +24,7 @@
           <li class="chat-item">Можно ли LLM-инженеру заплатить 100 рублей?</li>
         </ul>
       </div>
-      <button class="btn create-chat">+ Создать диалог</button>
+      <button class="btn create-chat">Создать диалог</button>
     </aside>
     <main class="main-content">
       <div class="center-buttons">
@@ -35,7 +35,9 @@
         <div class="messages"></div>
         <div class="input-area">
           <input type="text" id="chat-input" placeholder="Введите сообщение" />
-          <button id="send-btn" class="send-btn">▶</button>
+          <button id="send-btn" class="send-btn">
+            <img src="/static/icons/send.svg" alt="Отправить" />
+          </button>
         </div>
       </div>
     </main>
