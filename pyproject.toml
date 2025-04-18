@@ -14,4 +14,7 @@ dependencies = [
 ]
 authors = [
   {name = "Tralalelo Tralala", email = "vova.baranov@xxx.com"},
-  {name = "Stariy Bog", email = "vitalya.erokhin@hell_yeah.com"}]
+  {name = "Stariy Bog", email = "vitalya.erokhin@hell_yeah.com"},
+  {name = "Balerino Kappuchino", email = "kutsia.anna@sosal.ru",
+  {name = "Jakie Daniels", email = "tarkhov.danila@ambal.kek"}
+  ]
