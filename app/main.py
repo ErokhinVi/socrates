@@ -4,12 +4,16 @@ from fastapi.responses import HTMLResponse
 
 from app.api.evaluation import router as evaluation_router
 from app.api.interview import router as interview_router
+from app.api.field_description import router as field_description_router
+
 
 app = FastAPI()
 
 # Инициализируем роутеры для API
 app.include_router(evaluation_router)
 app.include_router(interview_router)
+app.include_router(field_description_router)
+
 
 # Templates for frontend
 templates = Jinja2Templates(directory="app/frontend")
@@ -24,6 +28,10 @@ async def select_persona_page(request: Request):
     return templates.TemplateResponse("select-candidate.html", {"request": request})
 
 @app.get("/interview", response_class=HTMLResponse)
+async def interview_page(request: Request):
+    return templates.TemplateResponse("interview.html", {"request": request})
+
+@app.get("/profession-info", response_class=HTMLResponse)
 async def interview_page(request: Request):
     return templates.TemplateResponse("interview.html", {"request": request})
 

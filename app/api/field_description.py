@@ -28,24 +28,31 @@ prompts = load_prompts("describe_professional_field.yaml")
 # Вебсокет-эндпоинт для интервью
 
 # Вот тут нужно сделать не для интрвью, а для описания!!!!
-@router.websocket("/ws/interview") 
+@router.websocket("/ws/profession-info") 
 # async def websocket_interview(ws: WebSocket, persona: str = Query("Junior Python Developer"), skill: str = Query("Python programming")):
 async def websocket_filed_description(ws: WebSocket, persona: str = Query("Junior Python Developer")):
     await ws.accept()  # Принимаем подключение
     # системный промпт для агента на основе выбранной персоны и навыка
     # меняем под наш промпт!!!!
-    system_prompt = prompts["describe_professional_field"].format(persona=persona)
+    system_prompt = prompts["describer_agent_system_prompt"].format(persona=persona)
     # agent = create_interviewee_agent(system_prompt)  # агент для интервью
     # создаем своего агента!!!
     agent = create_filed_description_agent(system_prompt)  # агент для интервью
     try:
-        while True:
-            data = await ws.receive_text()  # сообщение от клиента
-            json_data = json.loads(data)
+        input_message = f"Расскажи подробно про профессию {persona}"
+        response = await Runner.run(agent, input_message)
+        agent_text = response.final_output  # Текстовый ответ агента
+
+            
+        # while True:
+            # data = await ws.receive_text()  # сообщение от клиента
+            # json_data = json.loads(data)
             # if json_data["type"] == "text":  # текст
             #     user_input = json_data.get("message", "")
             #     is_audio = False
-            user_input = json_data.get("message", "")
+            
+            # user_input = json_data.get("message", "")
+            
             # elif json_data["type"] == "audio":  # аудио
             #     audio_bytes = base64.b64decode(json_data["audio"])
             #     temp_audio_path = os.path.join(TEMP_DIR, "temp_audio.wav")
@@ -54,12 +61,16 @@ async def websocket_filed_description(ws: WebSocket, persona: str = Query("Junio
             #     user_input = stt.transcribe_from_path(temp_audio_path)  # Распознаём речь
             #     is_audio = True
             # Формируем историю сообщений для передачи агенту
-            messages = [ttt.create_chat_message(msg["role"], msg["content"]) for msg in json_data.get("history", [])]
-            messages.append(ttt.create_chat_message("user", user_input))  # Добавляем текущее сообщение пользователя
+            
+            # messages = [ttt.create_chat_message(msg["role"], msg["content"]) for msg in json_data.get("history", [])]
+            # messages.append(ttt.create_chat_message("user", user_input))  # Добавляем текущее сообщение пользователя
+            
             # Получаем ответ от агента
-            response = await Runner.run(agent, messages)
+            # response = await Runner.run(agent, messages)
+            # response = await Runner.run(agent)
+
             # response = await Runner.run(agent, user_input, context={"messages": messages}) # Вариант с контекстом
-            agent_text = response.final_output  # Текстовый ответ агента
+            # agent_text = response.final_output  # Текстовый ответ агента
             # if is_audio:
             #     # Генерируем аудиофайл с ответом агента
             #     tts_response = tts.generate_speech(agent_text, tone=prompts["persona_voice_tone_prompt"])
@@ -69,7 +80,9 @@ async def websocket_filed_description(ws: WebSocket, persona: str = Query("Junio
             # elif not is_audio:
                 # Отправляем клиенту только текст
                 # await ws.send_json({"type": "text", "content": agent_text})
-            await ws.send_json({"type": "text", "content": agent_text})
+            # await ws.send_json({"type": "text", "content": agent_text})
+        await ws.send_json({"type": "text", "content": agent_text})
+        
             
     except WebSocketDisconnect:
         pass
