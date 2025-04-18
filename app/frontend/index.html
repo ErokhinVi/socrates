@@ -1,19 +1,46 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Interviewee Agent</title>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raiffeisen Bank Chat</title>
+  <!-- Подключаем статический CSS -->
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body class="bg-[#2B2D33] min-h-screen">
-    <div class="flex flex-col justify-center items-center min-h-screen font-sans">
-        <div class="flex space-x-8">
-            <a href="/select-persona" class="flex justify-center items-center bg-[#FF8B6B] hover:bg-white border-2 rounded w-40 h-40 font-semibold text-white hover:text-[#FF8B6B] uppercase transition-colors">
-                провести <br/> интервью
-            </a>
-            <a href="/evaluation" class="flex justify-center items-center bg-[#6A4CAD] hover:bg-white border-2 rounded w-40 h-40 font-semibold text-white hover:text-[#6A4CAD] uppercase transition-colors">
-                оценить <br/> интервью  
-            </a>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <div class="logo">Райффайзен Банк</div>
+      <button class="btn create-chat">Создать чат</button>
+      <ul class="chat-list">
+        <li class="chat-item">Чат: Тема 1</li>
+        <li class="chat-item">Чат: Тема 2</li>
+        <li class="chat-item">Чат: Тема 3</li>
+      </ul>
+    </aside>
+    <main class="main-content">
+      <div class="center-buttons">
+        <!-- Ссылки вместо кнопок для перехода -->
+        <a href="/interview" class="btn interview-btn">Провести<br/>интервью</a>
+        <a href="/evaluation" class="btn evaluate-btn">Оценить<br/>интервью</a>
+      </div>
+      <div class="chat-area">
+        <div class="audio-bar">AudioBar</div>
+        <div class="messages"></div>
+        <div class="input-area">
+          <input type="text" id="chat-input" placeholder="Введите сообщение" />
+          <button id="send-btn" class="send-btn">▶</button>
         </div>
-    </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    document.getElementById("send-btn").addEventListener("click", function () {
+      const val = document.getElementById("chat-input").value;
+      alert(val);
+    });
+  </script>
 </body>
 </html>
