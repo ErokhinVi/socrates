@@ -70,19 +70,16 @@ async def websocket_interview(
             data: Dict[str, Any] = json.loads(raw)
 
             # ---------- завершение интервью ----------
-            print(messages)
             if data.get("type") == "end":
                 history_str: str = ttt.create_history_template(messages)
-                print("---" * 300)
-                print(history_str)
                 star_result: Dict[str, str] = await run_star_evaluation(
                     star_agent, history_str
                 )
                 await ws.send_json(
                     {
                         "type": "star_summary",
-                        "star": star_result.model_dump(),
-                    }  # <-- важно: отправляем dict
+                        "star": star_result.model_dump(),   # <-- без .model_dump()
+                    }
                 )
                 break  # выходим из цикла — соединение будет закрыто сервером
 
