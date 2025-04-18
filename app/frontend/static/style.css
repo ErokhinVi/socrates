@@ -1,0 +1,161 @@
+/* style.css */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #2B2C34;
+  color: #FFFFFF;
+  font-family: sans-serif;
+}
+* { box-sizing: border-box; }
+.hidden { display: none !important; }
+
+.container { display: flex; height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background-color: #1F2026;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+.logo-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.header-icon {
+  width: 232px;
+  height: auto;
+  border-radius: 6px;
+  object-fit: contain;
+}
+.sidebar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 105px;
+}
+.sidebar-btn {
+  width: 100%;
+  height: 80px;
+  background-color: #FFD600;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.sidebar-btn:hover {
+  background-color: #ffe34d;
+}
+
+/* Main content */
+.main-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.view {
+  padding: 24px;
+  width: 100%;
+}
+
+/* Форма профиля */
+#view-interview-form .bg-white {
+  border: 1px solid #2B2D33;
+  background-color: #292B32;
+  color: #fff;
+  max-width: 800px;
+  margin: auto;
+}
+#view-interview-form input {
+  background-color: #1F2026;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+}
+
+/* Чат */
+.chat-area {
+  border: 1px solid #2B2D33;
+  border-radius: 12px;
+  background-color: #292B32;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  width: 100%;
+}
+.messages {
+  flex: 1;
+  min-height: 400px;
+  background-color: #1D1E23;
+  border: 1px solid #2B2D33;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  width: 100%;
+}
+.message-user {
+  background-color: #3A3C42;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: right;
+  margin-bottom: 8px;
+}
+.message-assistant {
+  background-color: #2B2D33;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+/* Область ввода */
+.input-area {
+  display: flex;
+  gap: 8px;
+}
+.input-area input {
+  flex-grow: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #1F2026;
+  color: #fff;
+  font-size: 1rem;
+}
+.input-area button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background-color: #FFCD3C;
+  color: #000;
+}
+#send-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Кнопки управления */
+#endInterviewBtn {
+  margin-top: 12px;
+}
+#recordButton {
+  margin-top: 8px;
+}
