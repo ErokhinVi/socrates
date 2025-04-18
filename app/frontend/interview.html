@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интервью</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col justify-center items-center bg-[#2B2D33] min-h-screen font-sans">
+    <div class="bg-white shadow mt-6 p-6 rounded w-full max-w-4xl">
+        <div class="bg-gray-50 mb-4 p-2 rounded">
+            <h2 class="mb-2 font-semibold text-lg">Текущая сессия интервью</h2>
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <p class="font-medium text-gray-700 text-sm">Профиль кандидата:</p>
+                    <p id="personaDisplay" class="mt-1 text-sm">{{ persona if persona else "Not specified" }}</p>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-gray-700 text-sm">Оцениваемый навык:</p>
+                    <p id="skillDisplay" class="mt-1 text-sm">{{ skill if skill else "Not specified" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Статус соединения -->
+        <div id="connection-status" class="bg-yellow-100 mb-2 p-2 rounded text-yellow-700 text-center">
+            Подключение...
+        </div>
+        
+        <div id="messages" class="mb-4 p-4 border h-80 overflow-y-auto"></div>
+        <form id="chat-form" onsubmit="sendMessage(event)" class="flex space-x-2">
+            <input type="text" id="messageText" placeholder="Введите сообщение" class="flex-grow p-2 border rounded" disabled>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white" disabled>
+                Отправить
+            </button>
+        </form>
+        <div class="flex justify-between space-x-2 mt-4">
+            <button id="endInterviewBtn" onclick="endInterview()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white">
+                Завершить интервью
+            </button>
+            <span id="recordingStatus" class="text-gray-600"></span>
+            <button id="recordButton" onclick="toggleRecording()" class="bg-blue-600 hover:bg-red-600 px-4 py-2 rounded text-white" disabled>
+                Записать голос
+            </button>
+        </div>
+    </div>
+    
+    <script>
+    // --- Получение и валидация параметров интервью из URL ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPersona = urlParams.get('persona');
+    const currentSkill = urlParams.get('skill');
+
+    // Если параметры отсутствуют, возвращаем пользователя на выбор профиля
+    if (!currentPersona || !currentSkill) {
+        window.location.href = '/select-persona';
+    }
+
+    // --- Отображение выбранных параметров на странице ---
+    document.getElementById('personaDisplay').textContent = currentPersona;
+    document.getElementById('skillDisplay').textContent = currentSkill;
+
+    // --- Глобальные переменные для работы с аудио, состоянием соединения и историей сообщений ---
+    let mediaRecorder; // объект для записи аудио
+    let audioChunks = []; // массив для хранения аудиофрагментов
+    let isRecording = false; // флаг записи
+    let isConnected = false; // флаг подключения к серверу
+    let isWaitingForResponse = false; // флаг ожидания ответа от сервера
+    let ws; // WebSocket-соединение
+
+    // --- История интервью для сохранения и анализа ---
+    const conversationHistory = {
+        timestamp: new Date().toISOString(),
+        persona: currentPersona,
+        skill: currentSkill,
+        messages: []
+    };
+
+    // --- Установка WebSocket-соединения с сервером для обмена сообщениями и аудио ---
+    function connectWebSocket() {
+        let wsHost = window.location.host;
+        if (!wsHost || wsHost === 'false') wsHost = 'localhost:8000';
+        const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${wsProtocol}://${wsHost}/ws/interview?persona=${encodeURIComponent(currentPersona)}&skill=${encodeURIComponent(currentSkill)}`;
+        ws = new WebSocket(wsUrl);
+        updateConnectionStatus('Подключение...', 'yellow');
+        ws.onopen = () => {
+            isConnected = true;
+            updateConnectionStatus('Подключено', 'green');
+            enableInterface();
+        };
+        ws.onclose = (event) => {
+            isConnected = false;
+            disableInterface();
+            if (event.code === 1000) {
+                updateConnectionStatus('Соединение закрыто', 'yellow');
+            } else {
+                updateConnectionStatus('Соединение разорвано', 'red');
+                showError('Соединение потеряно. Обновите страницу для подключения.');
+            }
+        };
+        ws.onerror = (error) => {
+            updateConnectionStatus('Ошибка соединения', 'red');
+        };
+        ws.onmessage = handleWebSocketMessage;
+    }
+
+    // --- Обработка входящих сообщений от сервера (текст/аудио/ошибки) ---
+    function handleWebSocketMessage(event) {
+        try {
+            const response = JSON.parse(event.data);
+            if (response.type === 'error') {
+                showError(`Ошибка: ${response.text}`);
+                resetWaitingState();
+                return;
+            }
+            if (['text', 'voice'].includes(response.type)) {
+                processMessage(response);
+                updateChatDisplay();
+                hideStatusMessage();
+                resetWaitingState();
+            }
+        } catch {
+            showError('Ошибка обработки сообщения');
+            resetWaitingState();
+        }
+    }
+
+    // --- Обработка ответа от сервера: добавление сообщений в историю, воспроизведение аудио ---
+    function processMessage(response) {
+        if (response.type === 'voice' && response.user_text) addUserMessage(response.user_text);
+        if (response.content && response.content.trim()) {
+            addAssistantMessage(response.content);
+            if (response.type === 'voice' && response.audio) {
+                hideStatusMessage();
+                playAudio(response.audio);
+            }
+        }
+    }
+
+    // --- Добавление сообщений пользователя и ассистента в историю ---
+    function addUserMessage(content) {
+        const lastUserMessage = getLastMessageByRole('user');
+        if (!lastUserMessage || lastUserMessage.content !== content) {
+            conversationHistory.messages.push({ role: "user", content });
+        }
+    }
+    function addAssistantMessage(content) {
+        const lastAssistantMessage = getLastMessageByRole('assistant');
+        if (!lastAssistantMessage || lastAssistantMessage.content !== content) {
+            conversationHistory.messages.push({ role: "assistant", content });
+        }
+    }
+    function getLastMessageByRole(role) {
+        return conversationHistory.messages.filter(msg => msg.role === role).pop();
+    }
+    function resetWaitingState() {
+        isWaitingForResponse = false;
+        enableInterface();
+    }
+    function hideStatusMessage() {
+        updateConnectionStatus('', '');
+    }
+
+    // --- Обновление чата на странице ---
+    function updateChatDisplay() {
+        const messagesEl = document.getElementById('messages');
+        messagesEl.innerHTML = "";
+        conversationHistory.messages.forEach(msg => {
+            const div = document.createElement('div');
+            if (msg.role === 'user') {
+                div.textContent = '［👤］: ' + msg.content;
+                div.className = 'mb-2 text-right';
+            } else if (msg.role === 'assistant') {
+                div.textContent = '［🤖］: ' + msg.content;
+                div.className = 'mb-2 text-left';
+            }
+            messagesEl.appendChild(div);
+        });
+        scrollChatToBottom();
+    }
+    function scrollChatToBottom() {
+        const messagesEl = document.getElementById('messages');
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function showError(message) {
+        const statusElement = document.getElementById('connection-status');
+        statusElement.textContent = message;
+        statusElement.className = 'mb-2 p-2 text-center rounded bg-red-100 text-red-700';
+        statusElement.classList.remove('hidden');
+    }
+
+    // --- Отправка текстового сообщения на сервер ---
+    function sendMessage(event) {
+        event.preventDefault();
+        if (!isConnected || isWaitingForResponse) return;
+        const input = document.getElementById("messageText");
+        const userMsg = input.value.trim();
+        if (userMsg === "") return;
+        addUserMessage(userMsg);
+        updateChatDisplay();
+        try {
+            ws.send(JSON.stringify({ type: "text", message: userMsg }));
+            input.value = '';
+            isWaitingForResponse = true;
+            disableInterface(true);
+        } catch {
+            showError('Ошибка отправки сообщения');
+        }
+    }
+
+    // --- Воспроизведение аудио-ответа ассистента ---
+    function playAudio(base64Audio) {
+        if (!base64Audio) return;
+        try {
+            const audio = new Audio();
+            audio.src = 'data:audio/mp3;base64,' + base64Audio;
+            setupAudioEventHandlers(audio);
+            audio.play().catch(error => showError('Ошибка воспроизведения аудио: ' + error.message));
+        } catch (error) {
+            showError('Ошибка подготовки аудио: ' + error.message);
+        }
+    }
+    function setupAudioEventHandlers(audio) {
+        audio.onplay = () => {};
+        audio.onended = () => {};
+        audio.onerror = () => showError('Ошибка воспроизведения аудио');
+    }
+
+    // --- Завершение интервью, экспорт истории в файл и переход на главную ---
+    function endInterview() {
+        if (!conversationHistory.messages.length) {
+            alert("Нет данных для сохранения. Проведите интервью перед сохранением.");
+            return;
+        }
+        if (!confirm("Завершить интервью и сохранить результаты?")) return;
+        try {
+            exportInterviewData();
+            closeConnection();
+            redirectToHome();
+        } catch (error) {
+            alert('Ошибка при сохранении результатов интервью: ' + error.message);
+        }
+    }
+    function exportInterviewData() {
+        const interviewData = {
+            timestamp: new Date().toISOString(),
+            persona: currentPersona,
+            skill: currentSkill,
+            messages: conversationHistory.messages,
+        };
+        if (!interviewData.messages.length) throw new Error("Нет сообщений для сохранения");
+        const jsonData = JSON.stringify(interviewData, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const fileName = generateFileName(currentPersona);
+        downloadBlob(blob, fileName);
+    }
+    function generateFileName(persona) {
+        const sanitizedPersona = persona.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_').substring(0, 20);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        return `interview_${sanitizedPersona}_${timestamp}.json`;
+    }
+    function downloadBlob(blob, fileName) {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = fileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(downloadLink.href);
+    }
+    function closeConnection() {
+        if (ws && ws.readyState === WebSocket.OPEN) ws.close(1000, "Interview completed");
+    }
+    function redirectToHome() {
+        setTimeout(() => { window.location.href = "/"; }, 1000);
+    }
+
+    // --- Работа с записью и отправкой аудио (startRecording, stopRecording, processRecordedAudio и др.) ---
+    async function toggleRecording() {
+        if (!isConnected || isWaitingForResponse) return;
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    }
+    async function startRecording() {
+        const recordButton = document.getElementById('recordButton');
+        const statusElement = document.getElementById('recordingStatus');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            setupRecordingHandlers();
+            mediaRecorder.start();
+            isRecording = true;
+            updateRecordingUI(true);
+        } catch {
+            statusElement.textContent = 'Ошибка доступа к микрофону';
+            showError('Ошибка доступа к микрофону');
+        }
+    }
+    function stopRecording() {
+        mediaRecorder.stop();
+        isRecording = false;
+        updateRecordingUI(false);
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    function setupRecordingHandlers() {
+        mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
+        mediaRecorder.onstop = () => { processRecordedAudio(); };
+    }
+    async function processRecordedAudio() {
+        try {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            convertBlobToBase64(audioBlob, sendAudioToServer);
+        } catch {
+            showError('Ошибка обработки аудио');
+        }
+    }
+    function convertBlobToBase64(blob, callback) {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            callback(base64Audio);
+        };
+    }
+    function sendAudioToServer(base64Audio) {
+        const payload = JSON.stringify({
+            type: "audio",
+            audio: base64Audio,
+            format: 'webm'
+        });
+        try {
+            ws.send(payload);
+            updateConnectionStatus('Аудио отправлено, ожидание ответа...', 'yellow');
+            isWaitingForResponse = true;
+            disableInterface(true);
+        } catch {
+            showError('Ошибка отправки аудио');
+        }
+    }
+    function updateRecordingUI(isRecordingActive) {
+        const recordButton = document.getElementById('recordButton');
+        const statusElement = document.getElementById('recordingStatus');
+        if (isRecordingActive) {
+            recordButton.textContent = 'Остановить';
+            recordButton.classList.add('bg-red-600');
+            recordButton.classList.remove('bg-blue-600');
+            statusElement.textContent = 'Запись...';
+            document.getElementById('messageText').disabled = true;
+            document.querySelector('#chat-form button[type="submit"]').disabled = true;
+        } else {
+            recordButton.textContent = 'Записать голос';
+            recordButton.classList.remove('bg-red-600');
+            recordButton.classList.add('bg-blue-600');
+            statusElement.textContent = '';
+        }
+    }
+
+    // --- Управление интерфейсом: блокировка/разблокировка элементов, отображение статусов ---
+    function updateConnectionStatus(message, color) {
+        const statusElement = document.getElementById('connection-status');
+        if (!message) {
+            statusElement.classList.add('hidden');
+            return;
+        }
+        statusElement.textContent = message;
+        statusElement.className = 'mb-2 p-2 text-center rounded';
+        statusElement.classList.remove('hidden');
+        const colorClasses = {
+            'green': ['bg-green-100', 'text-green-700'],
+            'yellow': ['bg-yellow-100', 'text-yellow-700'],
+            'red': ['bg-red-100', 'text-red-700']
+        };
+        if (colorClasses[color]) {
+            statusElement.classList.add(...colorClasses[color]);
+            if (color === 'green') {
+                setTimeout(() => statusElement.classList.add('hidden'), 2000);
+            }
+        }
+    }
+    function enableInterface() { setInterfaceState(false); }
+    function disableInterface(waitingMode = false) { setInterfaceState(true, waitingMode); }
+    function setInterfaceState(disabled, waitingMode = false) {
+        const elements = [
+            document.getElementById('messageText'),
+            document.querySelector('#chat-form button[type="submit"]'),
+            document.getElementById('recordButton')
+        ];
+        elements.forEach(el => { if (el) el.disabled = disabled; });
+        if (!disabled) document.getElementById('messageText').focus();
+    }
+
+    // --- Инициализация соединения при загрузке страницы ---
+    connectWebSocket();
+    </script>
+</body>
+</html>

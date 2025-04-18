@@ -1,0 +1,51 @@
+name: Deploy 2 DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      # Ставим Python and pip
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # Кешируем пакеты pip для ускорения установки зависимостей
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # copy _deploy.sh
+      - name: copy _deploy.sh
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          source: "_deploy.sh"
+          target: "/opt/"
+
+      # application
+      - name: setup app
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            chmod +x /opt/_deploy.sh
+            /opt/_deploy.sh "/opt/interviewee_agent" "https://github.com/${{ github.repository }}.git" "${{ secrets.OPENAI_API_KEY }}"

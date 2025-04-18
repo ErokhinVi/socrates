@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оценка интервью</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex justify-center items-center bg-[#2B2D33] min-h-screen font-sans">
+    <div class="bg-white shadow p-6 rounded w-full max-w-md">
+        <h1 class="mb-4 font-bold text-2xl text-center">Оцендака интервью</h1>
+        <p class="mb-4 text-center">Оценка интервью методом STAR:</p>
+        <div id="status-message" class="hidden mb-3 p-2 rounded text-center"></div>
+        <form id="evaluationForm" class="space-y-4">
+            <div>
+                <label for="json-input" class="block mb-1">JSON данные интервью:</label>
+                <textarea id="json-input" name="json-data" rows="10" cols="50" class="p-2 border rounded w-full"></textarea>
+                <p class="mt-1 text-gray-500 text-xs">Вставьте JSON с историей сообщений интервью или загрузите файл</p>
+                <input type="file" id="json-file" accept=".json" class="mt-2 text-sm" />
+            </div>
+            <div class="flex justify-between items-center">
+                <a href="/" class="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded text-white">Назад</a>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white">Оценить</button>
+            </div>
+        </form>
+    </div>
+    <script>
+    const jsonInput = document.getElementById('json-input');
+    const jsonFile = document.getElementById('json-file');
+    const statusMessage = document.getElementById('status-message');
+    const form = document.getElementById('evaluationForm');
+
+    jsonFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            jsonInput.value = text;
+        } catch {
+            showStatus('error', 'Ошибка чтения файла');
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const jsonText = jsonInput.value.trim();
+        if (!jsonText) return showStatus('error', 'Пожалуйста, введите данные JSON или загрузите файл');
+        let jsonData;
+        try {
+            jsonData = JSON.parse(jsonText);
+        } catch (err) {
+            return showStatus('error', `Неверный формат JSON: ${err.message}`);
+        }
+        const error = validateJson(jsonData);
+        if (error) return showStatus('error', error);
+
+        showStatus('info', 'Обработка данных...');
+        try {
+            const res = await fetch('/api/evaluation', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(jsonData)
+            });
+            if (!res.ok) throw new Error('Network response was not ok ' + res.status);
+            window.location.href = '/report';
+        } catch (err) {
+            showStatus('error', `Ошибка: ${err.message}`);
+        }
+    });
+
+    function validateJson(data) {
+        if (!data.timestamp) return 'Отсутствует поле "timestamp" в JSON';
+        if (!data.persona) return 'Отсутствует поле "persona" в JSON';
+        if (!data.skill) return 'Отсутствует поле "skill" в JSON';
+        if (!Array.isArray(data.messages)) return 'Отсутствует массив "messages" в JSON';
+        if (data.messages.length < 2) return 'Требуется минимум 2 сообщения для анализа';
+        if (data.messages.some(msg => !msg.role || !msg.content)) return 'Каждое сообщение должно содержать поля "role" и "content"';
+        return null;
+    }
+
+    function showStatus(type, message) {
+        statusMessage.textContent = message;
+        statusMessage.className = 'mb-3 p-2 rounded text-center ' +
+            (type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700');
+        statusMessage.classList.remove('hidden');
+    }
+    </script>
+</body>
+</html>

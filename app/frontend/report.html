@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STAR Evaluation Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex justify-center items-center bg-[#2B2D33] min-h-screen font-sans">
+    <div class="bg-white shadow p-6 rounded w-full max-w-md">
+        <h1 class="mb-4 font-bold text-2xl text-center">STAR Evaluation Report</h1>
+        
+        <div id="loading-indicator" class="py-4 text-center">
+            <div class="inline-block border-t-2 border-b-2 border-blue-500 rounded-full w-8 h-8 animate-spin"></div>
+            <p class="mt-2 text-gray-600">Загрузка результатов...</p>
+        </div>
+        
+        <div id="error-message" class="hidden py-4 text-red-600 text-center"></div>
+        
+        <div id="report-content" class="hidden space-y-4">
+            <div>
+                <h2 class="font-bold text-blue-700">Ситуация (Situation)</h2>
+                <div id="situation" class="bg-gray-50 p-3 border rounded text-gray-800 whitespace-pre-wrap">-</div>
+            </div>
+            
+            <div>
+                <h2 class="font-bold text-green-700">Задача (Task)</h2>
+                <div id="task" class="bg-gray-50 p-3 border rounded text-gray-800 whitespace-pre-wrap">-</div>
+            </div>
+            
+            <div>
+                <h2 class="font-bold text-purple-700">Действия (Action)</h2>
+                <div id="action" class="bg-gray-50 p-3 border rounded text-gray-800 whitespace-pre-wrap">-</div>
+            </div>
+            
+            <div>
+                <h2 class="font-bold text-red-700">Результат (Result)</h2>
+                <div id="result" class="bg-gray-50 p-3 border rounded text-gray-800 whitespace-pre-wrap">-</div>
+            </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <a href="/evaluation" class="inline-block bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white">Назад к оценке</a>
+            <a href="/" class="inline-block bg-gray-500 hover:bg-gray-600 ml-2 px-4 py-2 rounded text-white">На главную</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const reportContent = document.getElementById('report-content');
+            
+            // Максимальное время ожидания
+            const timeoutDuration = 20000; // 20 секунд
+            
+            // Создаем timeout для обработки превышения времени ожидания
+            const timeout = setTimeout(() => {
+                loadingIndicator.classList.add('hidden');
+                errorMessage.textContent = 'Превышено время ожидания ответа от сервера';
+                errorMessage.classList.remove('hidden');
+            }, timeoutDuration);
+            
+            // Получаем данные с сервера
+            fetch('/api/evaluation')
+                .then(response => {
+                    clearTimeout(timeout); // Очищаем таймаут, т.к. получили ответ
+                    
+                    if (!response.ok) {
+                        throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Проверяем наличие данных
+                    if (!data) {
+                        throw new Error('Нет данных для отображения. Возможно, оценка еще не была выполнена.');
+                    }
+                    
+                    // Заполняем содержимое элементов
+                    document.getElementById('situation').textContent = data.Situation || "-";
+                    document.getElementById('task').textContent = data.Task || "-";
+                    document.getElementById('action').textContent = data.Action || "-";
+                    document.getElementById('result').textContent = data.Result || "-";
+                    
+                    // Скрываем индикатор загрузки и показываем результаты
+                    loadingIndicator.classList.add('hidden');
+                    reportContent.classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    loadingIndicator.classList.add('hidden');
+                    errorMessage.textContent = `Произошла ошибка при загрузке результатов: ${error.message}`;
+                    errorMessage.classList.remove('hidden');
+                });
+        });
+    </script>
+</body>
+</html>
