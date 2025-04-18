@@ -2,9 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http‑equiv="X‑UA‑Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Raiffeisen Bank Chat</title>
+
   <link rel="stylesheet" href="/static/style.css" />
   <!-- Markdown‑парсер -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -17,9 +18,9 @@
         <img src="/static/images/raif_logo.png" alt="Raiffeisen Logo" class="header-icon" />
       </div>
       <div class="sidebar-buttons">
-        <button id="btnHome" class="sidebar-btn">Домой</button>
+        <button id="btnHome"      class="sidebar-btn">Домой</button>
         <button id="btnInterview" class="sidebar-btn">Провести интервью</button>
-        <button id="btnEvaluate" class="sidebar-btn">Оценить интервью</button>
+        <button id="btnEvaluate"  class="sidebar-btn">Оценить интервью</button>
         <button id="btnProfession" class="sidebar-btn">Узнать о профессии</button>
       </div>
     </aside>
@@ -60,26 +61,31 @@
             <p>Профиль кандидата: <span id="personaDisplay"></span></p>
             <p>Оцениваемый навык: <span id="skillDisplay"></span></p>
           </div>
+
           <div id="connection-status" class="bg-yellow-100 mb-2 p-2 rounded text-yellow-700 text-center hidden">
             Подключено
           </div>
+
           <div id="messages" class="messages"></div>
+
           <form id="chat-form" class="input-area" onsubmit="sendMessage(event)">
             <input type="text" id="messageText" placeholder="Введите сообщение" disabled />
             <button type="submit" id="send-btn" disabled>
               <img src="/static/icons/send.svg" alt="Отправить" />
             </button>
           </form>
+
           <button id="endInterviewBtn" class="mt-4">Завершить интервью</button>
           <button id="recordButton" disabled>Записать голос</button>
         </div>
       </section>
 
-      <!-- Оценка -->
+      <!-- Оценка STAR -->
       <section id="view-evaluation" class="view" style="display:none;">
         <div class="bg-white shadow mt-6 p-6 rounded w-full max-w-4xl">
-          <h2 class="text-xl font-bold mb-4">Оценка интервью</h2>
-          <p>Интерфейс для оценки...</p>
+          <h2 class="text-xl font-bold mb-4">Оценка интервью (метод STAR)</h2>
+          <div id="evaluationContent" class="space-y-2"></div>
+          <button id="evalBackBtn" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">На главную</button>
         </div>
       </section>
 
@@ -95,6 +101,7 @@
 
   <!-- Навигация между экранами -->
   <script>
+    /* ---------- переключение экранов ---------- */
     function showView(id) {
       document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
       document.getElementById(id).style.display = '';
@@ -103,8 +110,9 @@
     document.getElementById('btnInterview').onclick = () => showView('view-interview-form');
     document.getElementById('btnEvaluate').onclick  = () => showView('view-evaluation');
     document.getElementById('btnProfession').onclick= () => showView('view-newprofession');
+    document.getElementById('evalBackBtn').onclick  = () => showView('view-home');
 
-    // Обработка формы профиля
+    /* ---------- форма профиля ---------- */
     document.getElementById('personaForm').onsubmit = e => {
       e.preventDefault();
       const p = document.getElementById('inputPersona').value.trim();
@@ -115,67 +123,104 @@
       initInterview(p, s);
     };
 
-    // Стартуем с домашнего экрана
+    // стартуем с домашнего экрана
     showView('view-home');
   </script>
 
   <!-- Логика WebSocket и чат -->
   <script>
-    let ws, isConnected = false, isWaitingForResponse = false, mediaRecorder, audioChunks = [];
-    let conversationHistory = [];
+    let ws,
+        isConnected = false,
+        isWaitingForResponse = false,
+        mediaRecorder, audioChunks = [],
+        conversationHistory = [];
 
+    /* ---------- инициализация интервью ---------- */
     function initInterview(persona, skill) {
       connectWebSocket(persona, skill);
     }
+
+    /* ---------- WebSocket ---------- */
     function connectWebSocket(persona, skill) {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-      const url = `${proto}://${location.host}/ws/interview?persona=${encodeURIComponent(persona)}&skill=${encodeURIComponent(skill)}`;
+      const url   = `${proto}://${location.host}/ws/interview?persona=${encodeURIComponent(persona)}&skill=${encodeURIComponent(skill)}`;
+
       ws = new WebSocket(url);
       updateConnectionStatus('Подключение...', 'yellow');
-      ws.onopen = () => {
+
+      ws.onopen    = () => {
         isConnected = true;
         updateConnectionStatus('Подключено', 'green');
         setTimeout(hideStatusMessage, 1000);
         enableInterface();
       };
       ws.onmessage = handleWebSocketMessage;
-      ws.onerror   = () => updateConnectionStatus('Ошибка соединения','red');
-      ws.onclose   = () => updateConnectionStatus('Соединение закрыто','yellow');
+      ws.onerror   = () => updateConnectionStatus('Ошибка соединения', 'red');
+      ws.onclose   = () => {
+        isConnected = false;
+        updateConnectionStatus('Соединение закрыто', 'yellow');
+      };
     }
 
+    /* ---------- обработка входящих сообщений ---------- */
     function handleWebSocketMessage(event) {
       const resp = JSON.parse(event.data);
-      if (resp.type === 'error') return updateConnectionStatus(resp.text, 'red');
-      if (['text','voice'].includes(resp.type)) {
+
+      if (resp.type === 'error') {
+        return updateConnectionStatus(resp.text, 'red');
+      }
+
+      if (['text', 'voice'].includes(resp.type)) {
         addAssistantMessage(resp.content);
         if (resp.type === 'voice' && resp.audio) playAudio(resp.audio);
         updateChatDisplay();
         hideStatusMessage();
         isWaitingForResponse = false;
         enableInterface();
+        return;
+      }
+
+      /* ---------- обработка STAR‑оценки ---------- */
+      if (resp.type === 'star_summary') {
+        renderStarEvaluation(resp.star);
+        if (ws) ws.close(1000, 'Interview finished');
+        return;
       }
     }
 
+    /* ---------- отправка текстового сообщения ---------- */
     function sendMessage(e) {
       e.preventDefault();
       if (!isConnected || isWaitingForResponse) return;
+
       const input = document.getElementById('messageText');
-      const msg = input.value.trim();
+      const msg   = input.value.trim();
       if (!msg) return;
+
       addUserMessage(msg);
       updateChatDisplay();
+
       ws.send(JSON.stringify({ type: 'text', message: msg }));
-      input.value = '';
+
+      input.value          = '';
       isWaitingForResponse = true;
-      disableInterface(true);
+      disableInterface();
     }
 
-    function addUserMessage(txt) {
-      conversationHistory.push({ role:'user', content: txt });
-    }
-    function addAssistantMessage(txt) {
-      conversationHistory.push({ role:'assistant', content: txt });
-    }
+    /* ---------- завершить интервью и запросить STAR ---------- */
+    document.getElementById('endInterviewBtn').onclick = () => {
+      if (!isConnected) { showView('view-home'); return; }
+
+      disableInterface();
+      isWaitingForResponse = true;
+      updateConnectionStatus('Формируется итоговая оценка...', 'yellow');
+
+      ws.send(JSON.stringify({ type: 'end' }));          // <‑‑ КЛЮЧЕВОЙ ВЫЗОВ
+    };
+
+    /* ---------- вспомогательные функции ---------- */
+    function addUserMessage(txt)      { conversationHistory.push({ role: 'user',      content: txt }); }
+    function addAssistantMessage(txt) { conversationHistory.push({ role: 'assistant', content: txt }); }
 
     function updateChatDisplay() {
       const el = document.getElementById('messages');
@@ -196,23 +241,17 @@
 
     function updateConnectionStatus(msg, color) {
       const st = document.getElementById('connection-status');
-      st.textContent = msg;
-      st.className = `mb-2 p-2 text-center rounded bg-${color}-100 text-${color}-700`;
+      st.textContent  = msg;
+      st.className    = `mb-2 p-2 text-center rounded bg-${color}-100 text-${color}-700`;
       st.classList.remove('hidden');
     }
-    function hideStatusMessage() {
-      document.getElementById('connection-status').classList.add('hidden');
-    }
-
-    function enableInterface() {
-      document.getElementById('messageText').disabled = false;
-      document.getElementById('send-btn').disabled     = false;
-      document.getElementById('recordButton').disabled = false;
-    }
-    function disableInterface() {
-      document.getElementById('messageText').disabled = true;
-      document.getElementById('send-btn').disabled     = true;
-      document.getElementById('recordButton').disabled = true;
+    function hideStatusMessage()           { document.getElementById('connection-status').classList.add('hidden'); }
+    function enableInterface()             { setInterfaceDisabled(false); }
+    function disableInterface()            { setInterfaceDisabled(true); }
+    function setInterfaceDisabled(state) {
+      document.getElementById('messageText').disabled  = state;
+      document.getElementById('send-btn').disabled     = state;
+      document.getElementById('recordButton').disabled = state;
     }
 
     function playAudio(base64) {
@@ -220,12 +259,23 @@
       audio.play().catch(() => {});
     }
 
-    document.getElementById('endInterviewBtn').onclick = () => {
-      if (ws) ws.close(1000, 'User left');
-      showView('view-home');
-    };
+    /* ---------- визуализация STAR‑отчёта ---------- */
+    function renderStarEvaluation(star) {
+      const wrap = document.getElementById('evaluationContent');
+      const makeBlock = (k, v) =>
+        `<div><strong>${k}:</strong><br><span class="whitespace-pre-line">${marked.parseInline(v)}</span></div>`;
+      wrap.innerHTML = `
+        ${makeBlock('Situation', star.Situation || star.S)}
+        ${makeBlock('Task',      star.Task      || star.T)}
+        ${makeBlock('Action',    star.Action    || star.A)}
+        ${makeBlock('Result',    star.Result    || star.R)}
+      `;
+      showView('view-evaluation');
+    }
+
+    /* ---------- (опционально) запись аудио ---------- */
     document.getElementById('recordButton').onclick = () => {
-      /* Ваша логика записи */
+      /* ваша логика записи */
     };
   </script>
 </body>

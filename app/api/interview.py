@@ -50,18 +50,17 @@ async def websocket_interview(
         persona=persona, skill=skill
     )
     interviewee_agent = create_interviewee_agent(system_prompt)
-    star_agent = create_evaluation_agent(evaluation_prompts["evaluation_system_prompt"])
+    star_agent        = create_evaluation_agent(evaluation_prompts["evaluation_system_prompt"])
 
     messages: List[Dict[str, Union[str, Dict[str, str]]]] = []
 
     try:
         # ---------- блок уточняющих вопросов ----------
         response = await Runner.run(
-            interviewee_agent, "Задай уточняющие вопросы по переданному контексту"
+            interviewee_agent,
+            "Задай уточняющие вопросы по переданному контексту",
         )
-        clarifying_text: str = (
-            "Уточняющие вопросы:\n\n" + response.final_output.strip()
-        )
+        clarifying_text: str = "Уточняющие вопросы:\n\n" + response.final_output.strip()
         messages.append(ttt.create_chat_message("assistant", clarifying_text))
         await ws.send_json({"type": "text", "content": clarifying_text})
 
@@ -77,14 +76,14 @@ async def websocket_interview(
                     star_agent, history_str
                 )
                 await ws.send_json(
-                    {"type": "star_summary", "star": star_result.model_dump()}
+                    {"type": "star_summary", "star": star_result.model_dump()}  # <-- важно: отправляем dict
                 )
-                break  # выходим из цикла — соединение будет закрыто
+                break  # выходим из цикла — соединение будет закрыто сервером
 
             # ---------- текстовое сообщение ----------
             if data.get("type") == "text":
                 user_input: str = data.get("message", "")
-                is_audio: bool = False
+                is_audio: bool  = False
 
             # ---------- аудио сообщение ----------
             elif data.get("type") == "audio":
