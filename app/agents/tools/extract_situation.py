@@ -13,11 +13,11 @@ class Message(BaseModel):
 extract_situation_json = {
             "type": "function",
             "name": "extract_situation",
-            "description": "Оценка и комментарий по компоненту Situation: указывает, создаёт ли рекрутер контекст ситуации",
+            "description": "Опиши **Situation** в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации. Обязательно уточни был ли раскрыт компонент: ✅ | ❌",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "Situation": {"type": "string", "description": "Извлеченная ситуация из собеседования. Если ситуация не указана, не выдумывайте ее, просто укажите, что ситуация не описана."}
+                    "Situation": {"type": "string", "description": "Извлеченная ситуация из собеседования."}
                 },
                 "required": ["Situation"],
                 "additionalProperties": False
@@ -28,7 +28,7 @@ extract_situation_json = {
 @function_tool
 def extract_situation(messages: List[Message]) -> str:
     """
-    Оценка и комментарий по компоненту Situation: указывает, создаёт ли рекрутер контекст ситуации
+    Опиши **Situation** в критерии оценки из четырёх компонент STAR: подробная оценка, подробна критика и подробные рекомендации. Обязательно уточни был ли раскрыт компонент: ✅ | ❌
 
     Args:
         messages (list): Список сообщений из стенограммы собеседования. Каждое сообщение - словарь, содержащий 'role' и 'content'.
