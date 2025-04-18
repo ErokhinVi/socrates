@@ -40,7 +40,18 @@ async def websocket_interview(
     )
     agent = create_interviewee_agent(system_prompt)  # агент для интервью
     messages = []
+    clarify_info = True
     try:
+        if clarify_info:
+            response = await Runner.run(
+                agent, "Задай уточняющие вопросы по переданному контексту"
+            )  # Вариант с контекстом
+            agent_text = "Уточняющие вопросы:\n\n" + response.final_output
+            clarify_info = False
+            messages.append(
+                ttt.create_chat_message(role="assistant", content=agent_text)
+            )
+            await ws.send_json({"type": "text", "content": agent_text})
         while True:
             data = await ws.receive_text()  # сообщение от клиента
             json_data = json.loads(data)
