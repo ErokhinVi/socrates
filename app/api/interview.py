@@ -102,9 +102,6 @@ async def websocket_interview(
                 )
                 star_response = star_response.model_dump()
                 print(star_response)
-                # await ws.send_json(
-                #     {"type": "text", "content": str(star_response.model_dump())}
-                # )
             clarify_info = False
             if is_audio:
                 # Генерируем аудиофайл с ответом агента
