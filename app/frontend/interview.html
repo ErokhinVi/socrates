@@ -5,40 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Интервью</title>
 
-    <!-- Tailwind + Typography plugin -->
+    <!-- Tailwind + Typography -->
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
 
-    <!-- Markdown parser & sanitizer -->
+    <!-- Markdown parser + sanitizer -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.6/dist/purify.min.js"></script>
 </head>
 <body class="h-screen w-screen bg-[#2B2D33] font-sans">
-    <!-- Контейнер заполняет всё окно -->
     <div class="flex flex-col h-full w-full p-6 bg-white overflow-hidden">
-        <!-- Текущие параметры интервью -->
+
+        <!-- текущая сессия -->
         <div class="p-2 mb-4 bg-gray-50 rounded">
             <h2 class="mb-2 text-lg font-semibold">Текущая сессия интервью</h2>
             <div class="flex gap-4">
                 <div class="flex-1">
                     <p class="text-sm font-medium text-gray-700">Профиль кандидата:</p>
-                    <p id="personaDisplay" class="mt-1 text-sm">{{ persona if persona else "Not specified" }}</p>
+                    <p id="personaDisplay" class="mt-1 text-sm break-words"></p>
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-medium text-gray-700">Дополнительная информация:</p>
-                    <p id="skillDisplay" class="mt-1 text-sm">{{ skill if skill else "Not specified" }}</p>
+                    <p id="skillDisplay" class="mt-1 text-sm break-words"></p>
                 </div>
             </div>
         </div>
 
-        <!-- Статус соединения -->
+        <!-- статус -->
         <div id="connection-status" class="p-2 mb-2 text-center text-yellow-700 bg-yellow-100 rounded">
             Подключение...
         </div>
 
-        <!-- Сообщения и STAR‑оценки -->
+        <!-- сообщения -->
         <div id="messages" class="flex-grow w-full max-w-none p-4 overflow-y-auto break-words border prose prose-sm"></div>
 
-        <!-- Индикатор набора -->
+        <!-- индикатор печати -->
         <div id="waitingIndicator" class="flex items-center justify-center my-2 hidden">
             <svg class="w-5 h-5 text-blue-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -47,7 +47,7 @@
             <span class="ml-2 text-sm text-gray-700">Ассистент печатает...</span>
         </div>
 
-        <!-- Форма ввода текста -->
+        <!-- форма ввода -->
         <form id="chat-form" onsubmit="sendMessage(event)" class="flex space-x-2">
             <textarea
                 id="messageText"
@@ -61,8 +61,8 @@
             </button>
         </form>
 
-        <!-- Управление интервью и записью -->
-        <div class="flex justify-between mt-4 space-x-2">
+        <!-- кнопки управления до завершения -->
+        <div id="preEndControls" class="flex justify-between mt-4 space-x-2">
             <button
                 id="endInterviewBtn"
                 onclick="endInterview()"
@@ -80,395 +80,263 @@
                 Записать голос
             </button>
         </div>
+
+        <!-- кнопки управления после завершения -->
+        <div id="postEndControls" class="flex justify-end mt-4 space-x-2 hidden">
+            <button
+                id="downloadBtn"
+                class="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700"
+            >
+                Скачать отчёт
+            </button>
+            <button
+                id="closeBtn"
+                class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700"
+            >
+                Закрыть сессию
+            </button>
+        </div>
     </div>
 
-    <script>
-        /* -------------------- Получение параметров сессии -------------------- */
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentPersona = urlParams.get("persona");
-        const currentSkill = urlParams.get("skill");
-        if (!currentPersona || !currentSkill) window.location.href = "/select-persona";
-        document.getElementById("personaDisplay").textContent = currentPersona;
-        document.getElementById("skillDisplay").textContent = currentSkill;
+<script>
+/* ---------- параметры из URL ---------- */
+const params = new URLSearchParams(window.location.search);
+const currentPersona = params.get("persona");
+const currentSkill   = params.get("skill");
+if (!currentPersona || !currentSkill) location.href = "/select-persona";
+document.getElementById("personaDisplay").textContent = currentPersona;
+document.getElementById("skillDisplay").textContent   = currentSkill;
 
-        /* -------------------- Глобальные переменные -------------------- */
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let isConnected = false;
-        let isWaitingForResponse = false;
-        let ws; // WebSocket
+/* ---------- глобальные переменные ---------- */
+let ws, mediaRecorder, isRecording = false, isWaiting = false, interviewEnded = false;
+let conversationHistory = {
+    timestamp: new Date().toISOString(),
+    persona: currentPersona,
+    skill:   currentSkill,
+    messages: []
+};
+let starSummary = null;
 
-        // История сообщений (поддерживает STAR)
-        const conversationHistory = {
-            timestamp: new Date().toISOString(),
-            persona: currentPersona,
-            skill: currentSkill,
-            messages: []
+/* ---------- helpers ---------- */
+const sanitize = html => DOMPurify.sanitize(marked.parse(html || ""));
+
+function updateConnectionStatus(msg, color){
+    const el = document.getElementById("connection-status");
+    if (!msg){
+        el.classList.add("hidden");
+        return;
+    }
+    el.textContent = msg;
+    el.className   = "p-2 mb-2 text-center rounded";
+    el.classList.remove("hidden");
+    const map = {
+        green:["bg-green-100","text-green-700"],
+        yellow:["bg-yellow-100","text-yellow-700"],
+        red:["bg-red-100","text-red-700"]
+    };
+    if (map[color]) el.classList.add(...map[color]);
+    if (color==="green") setTimeout(()=>el.classList.add("hidden"),2000);
+}
+
+function enableUI(disabled){
+    ["messageText","#chat-form button","recordButton","endInterviewBtn"].forEach(sel=>{
+        const el = sel.startsWith("#")?document.querySelector(sel):document.getElementById(sel);
+        if (el) el.disabled = disabled;
+    });
+    if (!disabled) document.getElementById("messageText").focus();
+}
+
+function showWait(show){
+    document.getElementById("waitingIndicator").classList.toggle("hidden", !show);
+}
+
+/* ---------- websocket ---------- */
+function connect(){
+    const proto = location.protocol==="https:"?"wss":"ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws/interview?persona=${encodeURIComponent(currentPersona)}&skill=${encodeURIComponent(currentSkill)}`);
+    updateConnectionStatus("Подключение...","yellow");
+
+    ws.onopen   = ()=>{ updateConnectionStatus("Подключено","green"); enableUI(false); };
+    ws.onclose  = ()=>{ if (!interviewEnded) updateConnectionStatus("Соединение закрыто","yellow"); enableUI(true); };
+    ws.onerror  = ()=>{ updateConnectionStatus("Ошибка соединения","red"); enableUI(true); };
+    ws.onmessage= onWSMessage;
+}
+
+function onWSMessage(evt){
+    let data;
+    try{ data = JSON.parse(evt.data); }catch{ return; }
+
+    switch(data.type){
+        case "text":
+        case "voice":
+            processAssistantMessage(data);
+            break;
+        case "star_summary":
+            handleStarSummary(data.star);
+            break;
+        case "error":
+            updateConnectionStatus(`Ошибка: ${data.text}`, "red");
+            break;
+    }
+    showWait(false);
+    isWaiting = false;
+    if (!interviewEnded) enableUI(false);
+}
+
+function processAssistantMessage(data){
+    if (data.type==="voice" && data.user_text) addMessage("user", data.user_text);
+    addMessage("assistant", data.content);
+    updateMessagesView();
+    if (data.type==="voice" && data.audio) new Audio("data:audio/mp3;base64,"+data.audio).play();
+}
+
+/* ---------- сообщения ---------- */
+function addMessage(role, content){
+    conversationHistory.messages.push({role,content});
+}
+
+function updateMessagesView(){
+    const wrap = document.getElementById("messages");
+    wrap.innerHTML="";
+    conversationHistory.messages.forEach(m=>{
+        const block=document.createElement("div");
+        block.className="mb-4 "+(m.role==="user"?"text-right":"text-left");
+        block.innerHTML=`<p class="font-semibold mb-1">［${m.role==="user"?"👤":"🤖"}］:</p><div>${sanitize(m.content)}</div>`;
+        wrap.appendChild(block);
+    });
+    if (starSummary) renderStarSummary();  // если оценка уже получена
+    wrap.scrollTop = wrap.scrollHeight;
+}
+
+/* ---------- отправка текста ---------- */
+function sendMessage(e){
+    e.preventDefault();
+    if (isWaiting || interviewEnded) return;
+    const txt = document.getElementById("messageText");
+    const val = txt.value.trim();
+    if (!val) return;
+    addMessage("user", val);
+    updateMessagesView();
+    ws.send(JSON.stringify({type:"text", message:val}));
+    txt.value="";
+    isWaiting = true;
+    enableUI(true);
+    showWait(true);
+}
+
+/* ---------- аудио ---------- */
+async function toggleRecording(){
+    if (isWaiting || interviewEnded) return;
+    if (!isRecording) startRec(); else stopRec();
+}
+
+async function startRec(){
+    try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder = new MediaRecorder(stream);
+        const chunks=[];
+        mediaRecorder.ondataavailable = e=>chunks.push(e.data);
+        mediaRecorder.onstop = ()=>{
+            const blob = new Blob(chunks,{type:"audio/webm"});
+            const reader=new FileReader();
+            reader.onloadend=()=>ws.send(JSON.stringify({type:"audio", audio:reader.result.split(",")[1]}));
+            reader.readAsDataURL(blob);
+            updateConnectionStatus("Аудио отправлено, ожидание ответа...","yellow");
+            isWaiting = true;
+            enableUI(true);
+            showWait(true);
         };
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById("recordButton").textContent = "Остановить";
+    }catch(err){
+        updateConnectionStatus("Ошибка доступа к микрофону","red");
+    }
+}
 
-        /* -------------------- Утилиты -------------------- */
-        const isNonEmptyObject = obj => obj && Object.keys(obj).length > 0;
+function stopRec(){
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+    isRecording = false;
+    document.getElementById("recordButton").textContent = "Записать голос";
+}
 
-        /* -------------------- WebSocket -------------------- */
-        function connectWebSocket() {
-            const wsHost = window.location.host || "localhost:8000";
-            const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-            const wsUrl = `${wsProtocol}://${wsHost}/ws/interview?persona=${encodeURIComponent(currentPersona)}&skill=${encodeURIComponent(currentSkill)}`;
-            ws = new WebSocket(wsUrl);
-            updateConnectionStatus("Подключение...", "yellow");
+/* ---------- завершение интервью ---------- */
+function endInterview(){
+    if (!conversationHistory.messages.length){
+        alert("Сначала проведите интервью");
+        return;
+    }
+    if (!confirm("Завершить интервью и получить итоговую оценку?")) return;
+    enableUI(true);
+    updateConnectionStatus("Запрашиваем итоговую оценку…","yellow");
+    ws.send(JSON.stringify({type:"end"}));
+    showWait(true);
+}
 
-            ws.onopen = () => {
-                isConnected = true;
-                updateConnectionStatus("Подключено", "green");
-                enableInterface();
-            };
-            ws.onclose = evt => {
-                isConnected = false;
-                disableInterface();
-                if (evt.code === 1000) updateConnectionStatus("Соединение закрыто", "yellow");
-                else {
-                    updateConnectionStatus("Соединение разорвано", "red");
-                    showError("Соединение потеряно. Обновите страницу.");
-                }
-            };
-            ws.onerror = () => updateConnectionStatus("Ошибка соединения", "red");
-            ws.onmessage = handleWebSocketMessage;
-        }
+function handleStarSummary(star){
+    interviewEnded = true;
+    starSummary = star;
+    renderStarSummary();
+    disablePreEndUI();
+    showPostEndUI();
+    updateConnectionStatus("Интервью завершено","green");
+}
 
-        function handleWebSocketMessage(event) {
-            try {
-                const response = JSON.parse(event.data);
-                if (response.type === "error") {
-                    showError(`Ошибка: ${response.text}`);
-                    hideWaitingIndicator();
-                    resetWaitingState();
-                    return;
-                }
-                if (["text", "voice"].includes(response.type)) {
-                    processMessage(response);
-                    updateChatDisplay();
-                    hideStatusMessage();
-                    hideWaitingIndicator();
-                    resetWaitingState();
-                }
-            } catch {
-                showError("Ошибка обработки сообщения");
-                hideWaitingIndicator();
-                resetWaitingState();
-            }
-        }
+function renderStarSummary(){
+    if (!starSummary) return;
+    const wrap=document.getElementById("messages");
+    const box=document.createElement("div");
+    box.className="p-3 mb-4 text-sm text-gray-800 bg-indigo-50 rounded";
+    box.innerHTML="<p class='mb-2 font-semibold'>STAR‑оценка (Situation / Task / Action / Result):</p>"+
+        ["Situation","Task","Action","Result"].map(k=>
+            starSummary[k]!==undefined?`<p><strong>${k}:</strong> ${sanitize(starSummary[k])}</p>`:""
+        ).join("");
+    wrap.appendChild(box);
+    wrap.scrollTop = wrap.scrollHeight;
+}
 
-        /* -------------------- Обработка сообщения от сервера -------------------- */
-        function processMessage(response) {
-            if (response.type === "voice" && response.user_text) addUserMessage(response.user_text);
+/* ---------- UI после завершения ---------- */
+function disablePreEndUI(){
+    document.getElementById("preEndControls").classList.add("hidden");
+    enableUI(true);
+    document.getElementById("messageText").disabled = true;
+}
 
-            if (response.content?.trim()) {
-                addAssistantMessage(response.content, response.star || null);
+function showPostEndUI(){
+    const post = document.getElementById("postEndControls");
+    post.classList.remove("hidden");
+    document.getElementById("downloadBtn").addEventListener("click", downloadInterviewJson);
+    document.getElementById("closeBtn").addEventListener("click", closeSession);
+}
 
-                // Аудио, если есть
-                if (response.type === "voice" && response.audio) playAudio(response.audio);
-            }
-        }
+function downloadInterviewJson(){
+    conversationHistory.star = starSummary;
+    const blob = new Blob([JSON.stringify(conversationHistory,null,2)], {type:"application/json"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `interview_${currentPersona.replace(/[^a-zA-Zа-яА-Я0-9]/g,"_").slice(0,20)}_${new Date().toISOString().replace(/[:.]/g,"-")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
 
-        /* -------------------- Добавление сообщений в историю -------------------- */
-        function addUserMessage(content) {
-            const lastUserMsg = getLastMessageByRole("user");
-            if (!lastUserMsg || lastUserMsg.content !== content) {
-                conversationHistory.messages.push({ role: "user", content });
-            }
-        }
+function closeSession(){
+    if (ws.readyState === WebSocket.OPEN) ws.close(1000,"Interview completed");
+    location.href = "/";
+}
 
-        function addAssistantMessage(content, star = null) {
-            const lastAssistantMsg = getLastMessageByRole("assistant");
-            if (!lastAssistantMsg || lastAssistantMsg.content !== content) {
-                const msgObj = { role: "assistant", content };
-                if (isNonEmptyObject(star)) msgObj.star = star;
-                conversationHistory.messages.push(msgObj);
-            }
-        }
+/* ---------- доп клавиши ---------- */
+document.getElementById("messageText").addEventListener("keydown", e=>{
+    if (e.key==="Enter" && (e.ctrlKey||e.metaKey)){
+        e.preventDefault();
+        document.getElementById("chat-form").requestSubmit();
+    }
+});
 
-        function getLastMessageByRole(role) {
-            return conversationHistory.messages.filter(m => m.role === role).pop();
-        }
-
-        function resetWaitingState() {
-            isWaitingForResponse = false;
-            enableInterface();
-        }
-        function hideStatusMessage() {
-            updateConnectionStatus("", "");
-        }
-
-        /* -------------------- Отображение сообщений -------------------- */
-        function renderMarkdown(text) {
-            const unsafeHtml = marked.parse(text || "");
-            return DOMPurify.sanitize(unsafeHtml);
-        }
-
-        function updateChatDisplay() {
-            const messagesEl = document.getElementById("messages");
-            messagesEl.innerHTML = "";
-
-            conversationHistory.messages.forEach(msg => {
-                const wrapper = document.createElement("div");
-                wrapper.className = "mb-4";
-                wrapper.classList.add(msg.role === "user" ? "text-right" : "text-left");
-
-                const roleLabel = document.createElement("p");
-                roleLabel.className = "font-semibold mb-1";
-                roleLabel.textContent = msg.role === "user" ? "［👤］:" : "［🤖］:";
-                wrapper.appendChild(roleLabel);
-
-                const contentBlock = document.createElement("div");
-                contentBlock.innerHTML = renderMarkdown(msg.content);
-                wrapper.appendChild(contentBlock);
-
-                messagesEl.appendChild(wrapper);
-
-                if (isNonEmptyObject(msg.star)) {
-                    messagesEl.appendChild(renderStarEvaluation(msg.star));
-                }
-            });
-
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
-
-        function renderStarEvaluation(starObj) {
-            const container = document.createElement("div");
-            container.className = "p-3 mb-4 ml-6 text-sm text-gray-800 bg-indigo-50 rounded";
-
-            const title = document.createElement("p");
-            title.className = "mb-1 font-semibold";
-            title.textContent = "STAR оценка:";
-            container.appendChild(title);
-
-            ["Situation", "Task", "Action", "Result"].forEach(key => {
-                if (starObj[key] !== undefined) {
-                    const row = document.createElement("p");
-                    row.innerHTML = `<strong>${key}:</strong> ${renderMarkdown(starObj[key])}`;
-                    container.appendChild(row);
-                }
-            });
-
-            return container;
-        }
-
-        function showError(msg) {
-            const st = document.getElementById("connection-status");
-            st.textContent = msg;
-            st.className = "p-2 mb-2 text-center text-red-700 bg-red-100 rounded";
-            st.classList.remove("hidden");
-        }
-
-        /* -------------------- Отправка текстового сообщения -------------------- */
-        function sendMessage(evt) {
-            evt.preventDefault();
-            if (!isConnected || isWaitingForResponse) return;
-
-            const input = document.getElementById("messageText");
-            const userMsg = input.value.trim();
-            if (!userMsg) return;
-
-            addUserMessage(userMsg);
-            updateChatDisplay();
-
-            try {
-                ws.send(JSON.stringify({ type: "text", message: userMsg }));
-                input.value = "";
-                isWaitingForResponse = true;
-                disableInterface(true);
-                showWaitingIndicator();
-            } catch {
-                showError("Ошибка отправки сообщения");
-                hideWaitingIndicator();
-            }
-        }
-
-        /* -------------------- Аудио -------------------- */
-        function playAudio(base64Audio) {
-            if (!base64Audio) return;
-            try {
-                const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-                audio.play().catch(err => showError("Ошибка воспроизведения аудио: " + err.message));
-            } catch (err) {
-                showError("Ошибка подготовки аудио: " + err.message);
-            }
-        }
-
-        /* -------------------- Завершение интервью -------------------- */
-        function endInterview() {
-            if (!conversationHistory.messages.length) {
-                alert("Нет данных для сохранения. Проведите интервью.");
-                return;
-            }
-            if (!confirm("Завершить интервью и сохранить результаты?")) return;
-
-            try {
-                exportInterviewData();
-                closeConnection();
-                redirectToHome();
-            } catch (err) {
-                alert("Ошибка при сохранении: " + err.message);
-            }
-        }
-
-        function exportInterviewData() {
-            const interviewData = {
-                timestamp: new Date().toISOString(),
-                persona: currentPersona,
-                skill: currentSkill,
-                messages: conversationHistory.messages
-            };
-            if (!interviewData.messages.length) throw new Error("Нет сообщений для сохранения");
-
-            const blob = new Blob([JSON.stringify(interviewData, null, 2)], { type: "application/json" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `interview_${currentPersona.replace(/[^a-zA-Zа-яА-Я0-9]/g, "_").substring(0, 20)}_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-        }
-
-        function closeConnection() {
-            if (ws?.readyState === WebSocket.OPEN) ws.close(1000, "Interview completed");
-        }
-        function redirectToHome() {
-            setTimeout(() => location.href = "/", 1000);
-        }
-
-        /* -------------------- Запись аудио -------------------- */
-        async function toggleRecording() {
-            if (!isConnected || isWaitingForResponse) return;
-            isRecording ? stopRecording() : startRecording();
-        }
-
-        async function startRecording() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = processRecordedAudio;
-                mediaRecorder.start();
-                isRecording = true;
-                updateRecordingUI(true);
-            } catch {
-                showError("Ошибка доступа к микрофону");
-            }
-        }
-
-        function stopRecording() {
-            mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(t => t.stop());
-            isRecording = false;
-            updateRecordingUI(false);
-        }
-
-        async function processRecordedAudio() {
-            try {
-                const blob = new Blob(audioChunks, { type: "audio/webm" });
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64Audio = reader.result.split(",")[1];
-                    sendAudioToServer(base64Audio);
-                };
-                reader.readAsDataURL(blob);
-            } catch {
-                showError("Ошибка обработки аудио");
-            }
-        }
-
-        function sendAudioToServer(b64) {
-            try {
-                ws.send(JSON.stringify({ type: "audio", audio: b64, format: "webm" }));
-                updateConnectionStatus("Аудио отправлено, ожидание ответа...", "yellow");
-                isWaitingForResponse = true;
-                disableInterface(true);
-                showWaitingIndicator();
-            } catch {
-                showError("Ошибка отправки аудио");
-                hideWaitingIndicator();
-            }
-        }
-
-        /* -------------------- UI helpers -------------------- */
-        function updateRecordingUI(active) {
-            const btn = document.getElementById("recordButton");
-            const status = document.getElementById("recordingStatus");
-
-            if (active) {
-                btn.textContent = "Остановить";
-                btn.classList.replace("bg-blue-600", "bg-red-600");
-                status.textContent = "Запись...";
-                document.getElementById("messageText").disabled = true;
-                document.querySelector("#chat-form button").disabled = true;
-            } else {
-                btn.textContent = "Записать голос";
-                btn.classList.replace("bg-red-600", "bg-blue-600");
-                status.textContent = "";
-                document.getElementById("messageText").disabled = false;
-                document.querySelector("#chat-form button").disabled = false;
-            }
-        }
-
-        // ********************** WAITING INDICATOR helper functions **********************
-        function showWaitingIndicator() {
-            document.getElementById("waitingIndicator").classList.remove("hidden");
-        }
-        function hideWaitingIndicator() {
-            document.getElementById("waitingIndicator").classList.add("hidden");
-        }
-        // ********************************************************************************
-
-        function updateConnectionStatus(msg, color) {
-            const el = document.getElementById("connection-status");
-            if (!msg) {
-                el.classList.add("hidden");
-                return;
-            }
-
-            el.textContent = msg;
-            el.className = "p-2 mb-2 text-center rounded";
-            el.classList.remove("hidden");
-
-            const colors = {
-                green: ["bg-green-100", "text-green-700"],
-                yellow: ["bg-yellow-100", "text-yellow-700"],
-                red: ["bg-red-100", "text-red-700"]
-            };
-            if (colors[color]) el.classList.add(...colors[color]);
-
-            if (color === "green") setTimeout(() => el.classList.add("hidden"), 2000);
-        }
-
-        function enableInterface() {
-            setInterfaceState(false);
-        }
-        function disableInterface() {
-            setInterfaceState(true);
-        }
-        function setInterfaceState(disabled) {
-            ["messageText", "#chat-form button", "recordButton"].forEach(sel => {
-                const el = sel.startsWith("#") ? document.querySelector(sel) : document.getElementById(sel);
-                if (el) el.disabled = disabled;
-            });
-            if (!disabled) document.getElementById("messageText").focus();
-        }
-
-        /* -------------------- Доп. обработка клавиш -------------------- */
-        // Ctrl (или Cmd) + Enter — отправить сообщение, Enter без модификаторов — перенос строки
-        document.getElementById("messageText").addEventListener("keydown", e => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                document.getElementById("chat-form").requestSubmit();
-            }
-        });
-
-        /* -------------------- Init -------------------- */
-        connectWebSocket();
-    </script>
+/* ---------- старт ---------- */
+connect();
+</script>
 </body>
 </html>
