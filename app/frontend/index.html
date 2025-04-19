@@ -19,10 +19,10 @@
       </div>
 
       <div class="sidebar-buttons">
-        <button id="btnInterview"  class="sidebar-btn">Провести интервью</button>
-        <button id="btnEvaluate"   class="sidebar-btn">Оценить интервью</button>
+        <button id="btnInterview"  class="sidebar-btn">Тренажер</button>
+        <!-- <button id="btnEvaluate"   class="sidebar-btn">Оценить интервью</button> -->
         <!-- <a href="/profession.html" class="sidebar-btn">Узнать о&nbsp;профессии</a> -->
-        <button id="btnProfession" class="sidebar-btn">Узнать о&nbsp;компетенциях</button>
+        <button id="btnProfession" class="sidebar-btn">Компетенции</button>
       </div>
     </aside>
 
@@ -104,7 +104,7 @@
         </div>
       </section>
 
-      <!-- Экран «Узнать о компетенциях -->
+      <!-- Экран «Узнать о компетенциях» -->
       <!-- <section id="view-newprofession" class="view" style="display:none;">
         <div class="card">
           <h2 class="card-title">Узнать о профессии</h2>
@@ -126,7 +126,6 @@
               <option value="time_management">тайм-менеджмент</option>
               <option value="client_oriented">клиентоориентированность</option>
               <option value="strategy">стратегическое мышление</option>
-
             </select>
           </label>
       
@@ -136,31 +135,8 @@
             <h3>Вопросы для собеседования:</h3>
             <ul id="questionsList"></ul>
           </div>
-      
-          <!-- <div id="hrContacts" class="mt-4" style="display:none;">
-            <h3>Контакты HR:</h3>
-            <ul>
-              <li>Алексей Смирнов — <a href="mailto:asmirnov@raiffeisen_rus.ru">asmirnov@raiffeisen_rus.ru</a></li>
-              <li>Екатерина Иванова — <a href="mailto:eivanova@raiffeisen_rus.ru">eivanova@raiffeisen_rus.ru</a></li>
-              <li>Мария Кузнецова — <a href="mailto:mkuznetsova@raiffeisen_rus.ru">mkuznetsova@raiffeisen_rus.ru</a></li>
-            </ul>
-          </div> -->
         </div>
       </section>
-      
-              <!-- <option disabled selected value="">-- Выберите профессию --</option>
-              <option>Data Scientist</option>
-              <option>Backend Developer</option>
-              <option>Product Manager</option>
-            </select>
-          </label>
-      
-          <div id="professionDescription" class="mt-4 p-4 border bg-gray-50 rounded text-sm text-gray-800">
-            Описание появится здесь после выбора профессии.
-          </div>
-        </div> -->
-      </section>
-
     </main>
   </div>
 
@@ -355,17 +331,18 @@
         }
     });
   </script>
-   <!-- <option value="proactivity">проактивность</option>
-   <option value="evalution">саморазвитие</option>
-   <option value="collaboration">сотрудничество</option>
-   <option value="targetivity">нацеленность на результат</option>
-   <option value="time_management">тайм-менеджмент</option>
-   <option value="client_oriented">клиенто ориентированность</option> -->
+
+  <!-- <option value="proactivity">проактивность</option>
+       <option value="evalution">саморазвитие</option>
+       <option value="collaboration">сотрудничество</option>
+       <option value="targetivity">нацеленность на результат</option>
+       <option value="time_management">тайм-менеджмент</option>
+       <option value="client_oriented">клиенто ориентированность</option> -->
   <script>
     const professionInfo = {
      proactivity: `
          <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы проактивности<
+                Основные индикаторы проактивности
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -380,7 +357,7 @@
      `,
      evalution: `
         <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы саморазвития<
+                Основные индикаторы саморазвития
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -395,7 +372,7 @@
      `,
      collaboration: `
        <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы сотрудничества<
+                Основные индикаторы сотрудничества
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -410,7 +387,7 @@
      `,
      targetivity: `
        <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы нацеленности на результат<
+                Основные индикаторы нацеленности на результат
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -425,7 +402,7 @@
      `,
      time_management: `
        <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы тайм-менеджмента<
+                Основные индикаторы тайм-менеджмента
     </p>
 
     <div>
@@ -439,7 +416,7 @@
      `,
      client_oriented: `
        <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы клиентоориентированности<
+                Основные индикаторы клиентоориентированности
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -454,7 +431,7 @@
      `,
      strategy:`
        <p class="mb-2 text-base font-medium text-gray-700">
-                Основные индикаторы стратегического мышления<
+                Основные индикаторы стратегического мышления
     </p>
 
     <div class="mt-4 space-y-4 text-sm leading-relaxed">
@@ -468,8 +445,9 @@
     </div>
      `,
     };
+
     const interviewQuestionsMap = {
-        proactivity: [
+      proactivity: [
         "S — Какие инициативы вы предлагали на работе за последний год? Почему вы предложили именно их?",
         "T — В чем именно заключалась ваша задача?",
         "A — Как вы организовали процесс решения этой задачи? В чем были сложности?",
@@ -516,8 +494,8 @@
     document.getElementById('professionSelect').addEventListener('change', (e) => {
       const value = e.target.value;
 
-      // Описание профессии
-      const desc = professionInfo[value] || 'Информация о выбранной профессии временно недоступна.';
+      // Описание компетенции
+      const desc = professionInfo[value] || 'Информация о выбранной компетенции временно недоступна.';
       document.getElementById('professionDescription').innerHTML = `<p>${desc}</p>`;
 
       // Вопросы
@@ -526,39 +504,6 @@
       questionsUl.innerHTML = questionList.map(q => `<li>${q}</li>`).join('');
       document.getElementById('interviewQuestions').style.display = 'block';
     });
-    // const professionInfo = {
-    //   data_scientist: `
-    //     <strong>Data Scientist</strong> — специалист, который анализирует и интерпретирует сложные данные,
-    //     используя статистику, машинное обучение и программирование. Он создает модели для прогнозирования и оптимизации бизнес‑решений.
-    //   `,
-    //   product_manager: `
-    //     <strong>Product Manager</strong> отвечает за стратегию, разработку и успех цифрового продукта.
-    //     Он координирует работу команд, собирает требования пользователей и выстраивает дорожную карту.
-    //   `,
-    //   designer: `
-    //     <strong>UX/UI Designer</strong> создает удобные интерфейсы для цифровых продуктов,
-    //     учитывая поведение пользователей и визуальную эстетику.
-    //   `,
-    // };
-  
-    // document.getElementById('professionSelect').addEventListener('change', (e) => {
-    //   const value = e.target.value;
-    //   const desc = professionInfo[value] || 'Информация о выбранной профессии временно недоступна.';
-    //   document.getElementById('professionDescription').innerHTML = `<p>${desc}</p>`;
-    //   document.getElementById('showHrContacts').style.display = 'inline-block';
-    //   document.getElementById('hrContacts').style.display = 'none'; // скрываем, если уже открыт
-    // });
-  
-    // document.getElementById('showHrContacts').addEventListener('click', () => {
-    //   document.getElementById('hrContacts').style.display = 'block';
-    // });
-    //     document.getElementById('professionSelect').addEventListener('change', (e) => {
-    //     const value = e.target.value;
-    //     const desc = professionInfo[value] || 'Информация о выбранной компетенции временно недоступна.';
-    //     document.getElementById('professionDescription').innerHTML = `<p>${desc}</p>`;
-    //     document.getElementById('hrContacts').style.display = 'block';
-    //   });
-    </script>
-
+  </script>
 </body>
 </html>
