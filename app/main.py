@@ -31,6 +31,10 @@ templates = Jinja2Templates(directory="app/frontend")
 async def index_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/profession.html", response_class=HTMLResponse)
+async def profession_page(request: Request):
+    return templates.TemplateResponse("profession.html", {"request": request})
+
 @app.get("/select-persona", response_class=HTMLResponse)
 async def select_persona_page(request: Request):
     return templates.TemplateResponse("select-candidate.html", {"request": request})
