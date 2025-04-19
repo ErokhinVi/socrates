@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Узнать о профессии</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- <div class="container">
+        <aside class="sidebar">
+          <div class="logo-header">
+            <img src="/static/images/raif_logo.png" alt="Raiffeisen Logo" class="header-icon" />
+          </div>
+          <div class="sidebar-buttons">
+            <a href="/index.html#interview" class="sidebar-btn">Провести интервью</a>
+          </div>
+        </aside> -->
+    <main class="main-content">
+      <section class="view">
+        <div class="card">
+          <h2 class="card-title">Узнать о профессии</h2>
+
+          <label class="form-column">
+            <span class="label-text">Выберите профессию:</span>
+            <select id="professionSelect" class="w-full">
+              <option disabled selected value="">-- Выберите профессию --</option>
+              <option value="Data Scientist">Data Scientist</option>
+              <option value="Backend Developer">Backend Developer</option>
+              <option value="Product Manager">Product Manager</option>
+            </select>
+          </label>
+
+          <div id="professionDescription" class="mt-4 p-4 border bg-gray-50 rounded text-sm text-gray-800">
+            Описание появится здесь после выбора профессии.
+          </div>
+
+          <div class="mt-6">
+            <a href="/index" class="primary-btn">Провести интервью</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const professionDescriptions = {
+      "Data Scientist": "Data Scientist — это специалист, который анализирует большие объёмы данных, извлекает из них инсайты и создает модели для прогнозирования. Он владеет инструментами машинного обучения, статистики и программирования (чаще всего на Python или R).",
+      "Backend Developer": "Backend Developer занимается разработкой серверной логики приложения. Он работает с базами данных, API и архитектурой серверной части, обеспечивая корректную работу системы с внутренней стороны.",
+      "Product Manager": "Product Manager отвечает за стратегию продукта, собирает требования от пользователей и бизнеса, ставит задачи команде и следит за тем, чтобы продукт решал нужные проблемы."
+    };
+
+    const select = document.getElementById('professionSelect');
+    const descBox = document.getElementById('professionDescription');
+
+    select.onchange = () => {
+      const selected = select.value;
+      if (professionDescriptions[selected]) {
+        descBox.textContent = professionDescriptions[selected];
+      } else {
+        descBox.textContent = 'Описание отсутствует.';
+      }
+    };
+  </script>
+</body>
+</html>
