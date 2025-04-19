@@ -46,11 +46,17 @@ html, body {
 /* ───────────────────────────  CARD  ────────────────────────────── */
 .card {
   border: 1px solid #2B2D33; border-radius: 16px;
-  background-color: #292B32; padding: 32px 40px;
+  background-color: #323336; padding: 32px 40px;
   width: 100%; max-width: 820px; margin: auto;
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
-.card-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 24px; }
+.card-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;   
+}
+
 
 /* ─────────────────────  INPUT + FORMS  ─────────────────────────── */
 .form-column { display: flex; flex-direction: column; gap: 24px; }
@@ -92,7 +98,7 @@ input[type="text"] {
   height: calc(100vh - 48px); /* ⬆ стало выше (было 96px) */
 }
 .chat-info { margin-bottom: 16px; }
-.chat-heading { margin: 0 0 4px; font-weight: 700; font-size: 1.25rem; }
+.chat-heading { margin: 0 0 4px; font-weight: 700; font-size: 1.25rem; text-align: center; width: 100%;}
 
 /* ⬇ добавлено: метаданные о сессии в одну строку */
 .chat-meta {
@@ -102,8 +108,19 @@ input[type="text"] {
   margin-top: 4px;
   font-size: 0.95rem;
 }
-.meta-item strong { font-weight: 600; }
-.meta-item { white-space: nowrap; }
+.meta-item {
+  background-color: #1F2026;  /* цвет фона блока */
+  padding: 8px 12px;          /* внутренние отступы */
+  border-radius: 8px;         /* скруглённые углы */
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.meta-item strong {
+  margin-right: 6px;
+  font-weight: 600;
+}
 
 .messages {
   flex: 1 1 auto;

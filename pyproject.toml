@@ -12,3 +12,9 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "uvicorn>=0.34.1",
 ]
+authors = [
+  {name = "Tralalelo Tralala", email = "vova.baranov@xxx.com"},
+  {name = "Stariy Bog", email = "vitalya.erokhin@hell_yeah.com"},
+  {name = "Balerino Kappuchino", email = "kutsia.anna@sosal.ru",
+  {name = "Jakie Daniels", email = "tarkhov.danila@ambal.kek"}
+  ]

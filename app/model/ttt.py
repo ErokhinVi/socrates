@@ -54,5 +54,5 @@ class TTT:
         history = """Контекст по предыдущим сообщениям внутри диалога:"""
 
         for message in messages:
-            history += f"**{message.get('role', "")}**: {message.get('content', "")}"
+            history += f"**{message.get('role', "")}**: \n\n{message.get('content', "")}\n\n"
         return history

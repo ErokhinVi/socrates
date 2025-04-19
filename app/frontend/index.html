@@ -32,7 +32,7 @@
       <!-- Домашний экран -->
       <section id="view-home" class="view">
         <div class="home-welcome">
-          <h1>Добро пожаловать в Raiffeisen Bank Chat</h1>
+          <h1>Добро пожаловать в Raiffeisen Hiring Simulator.</h1>
           <p>Выберите действие слева, чтобы начать.</p>
         </div>
       </section>
@@ -48,8 +48,8 @@
             </label>
 
             <label>
-              <span class="label-text">Навык для оценки:</span>
-              <input type="text" id="inputSkill" placeholder="Python" required />
+              <span class="label-text">Выдели основные компетенции кандидата:</span>
+              <input type="text" id="inputSkill" placeholder="Например - проактивность, тайм менеджмент, ответственность..." required />
             </label>
 
             <button type="submit" class="primary-btn w-full">Перейти к интервью</button>
@@ -61,10 +61,20 @@
       <section id="view-interview-chat" class="view" style="display:none;">
         <div class="chat-area">
             <div class="chat-info">
-              <h2 class="chat-heading">Текущая сессия интервью</h2>
-            <p>Профиль кандидата: <span id="personaDisplay"></span></p>
-            <p>Оцениваемый навык: <span id="skillDisplay"></span></p>
-          </div>
+                <h2 class="chat-heading">Текущая сессия интервью</h2>
+              
+                <!-- flex‑контейнер для мета‑информации -->
+                <div class="chat-meta">
+                  <div class="meta-item">
+                    <strong>Профиль кандидата:</strong>
+                    <span id="personaDisplay"></span>
+                  </div>
+                  <div class="meta-item">
+                    <strong>Компетенции:</strong>
+                    <span id="skillDisplay"></span>
+                  </div>
+                </div>
+              </div>
 
           <div id="connection-status" class="status-toast hidden"></div>
 
@@ -84,11 +94,12 @@
         </div>
       </section>
 
-      <!-- Экран оценки (STAR) -->
+      <!-- Экран оценки (STAR)  ─── больше не используется, но оставлен
+           для обратной совместимости -->
       <section id="view-evaluation" class="view" style="display:none;">
         <div class="card">
           <h2 class="card-title">Оценка интервью (метод STAR)</h2>
-          <div id="evaluationContent" class="space-y-2"></div>
+          <p>Итоговая оценка теперь выводится прямо в чате 😊</p>
           <button id="evalBackBtn" class="primary-btn mt-4">На главную</button>
         </div>
       </section>
@@ -160,14 +171,20 @@
       document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
       document.getElementById(id).style.display = '';
     }
+
+    // Объект кнопок навигации — кнопка оценки интервью удалена
     const buttons = {
       btnInterview:  'view-interview-form',
-      btnEvaluate:   'view-evaluation',
+      // btnEvaluate:   'view-evaluation', // удалено
       btnProfession: 'view-newprofession',
     };
-    Object.entries(buttons).forEach(([btn, view]) =>
-      document.getElementById(btn).onclick = () => showView(view)
-    );
+
+    Object.entries(buttons).forEach(([btn, view]) => {
+      const el = document.getElementById(btn);
+      if (el) el.onclick = () => showView(view);
+    });
+
+    // Кнопка возврата из экрана оценки
     document.getElementById('evalBackBtn').onclick = () => showView('view-home');
 
     /* ---------- форма профиля ---------- */
@@ -223,6 +240,7 @@
         return updateConnectionStatus(resp.text, 'red');
       }
 
+      /* ---------- обычные ответы ассистента ---------- */
       if (['text', 'voice'].includes(resp.type)) {
         addAssistantMessage(resp.content);
         if (resp.type === 'voice' && resp.audio) playAudio(resp.audio);
@@ -233,8 +251,23 @@
         return;
       }
 
+      /* ---------- итоговая оценка STAR ---------- */
       if (resp.type === 'star_summary') {
-        renderStarEvaluation(resp.star);
+        const s = resp.star || {};
+        const md = [
+          '**📊 Итоговая оценка (метод STAR)**',
+          '',
+          `**Situation:**\n${s.Situation || s.S || '—'}`,
+          '',
+          `**Task:**\n${s.Task || s.T || '—'}`,
+          '',
+          `**Action:**\n${s.Action || s.A || '—'}`,
+          '',
+          `**Result:**\n${s.Result || s.R || '—'}`,
+        ].join('\n');
+        addAssistantMessage(md);
+        updateChatDisplay();
+        disableInterface();
         if (ws) ws.close(1000, 'Interview finished');
       }
     }
@@ -309,17 +342,9 @@
       audio.play().catch(() => {});
     }
 
-    function renderStarEvaluation(star) {
-      const wrap = document.getElementById('evaluationContent');
-      const make = (k, v) => `<div><strong>${k}:</strong><br><span class="whitespace-pre-line">${marked.parseInline(v)}</span></div>`;
-      wrap.innerHTML = `
-        ${make('Situation', star.Situation || star.S)}
-        ${make('Task',      star.Task      || star.T)}
-        ${make('Action',    star.Action    || star.A)}
-        ${make('Result',    star.Result    || star.R)}
-      `;
-      showView('view-evaluation');
-    }
+    /* ------------- прежняя функция renderStarEvaluation
+       больше не нужна, но оставлена на случай обратной совместимости ---------- */
+    function renderStarEvaluation() {}
 
     document.getElementById('recordButton').onclick = () => {
       /* логика записи, если нужна */
